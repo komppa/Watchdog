@@ -27,13 +27,13 @@ const mailer = async (recvEmail, triggeredDevice, reason) => {
         host: 'smtp.ethereal.email',
         port: 587,
         auth: {
-            user: 'gunner82@ethereal.email',
-            pass: 'cH8aZkwnE7WW26AT6v'
+            user: 'dallas.hermann@ethereal.email',
+            pass: 'HP8uFX1ezuBKD6BnG3'
         }
     });
 
     let info = await transporter.sendMail({
-        from: '"Watchdog - alert" gunner82@ethereal.email',
+        from: '"Watchdog - alert" dallas.hermann@ethereal.email',
         to: recvEmail,
         subject: "WATCHDOG - Device " + triggeredDevice + " triggered alert ⚠️",
         text: "Alert triggered\nAlert has been triggered by the device " + triggeredDevice + " and the reason is " + reason,

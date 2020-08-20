@@ -9,12 +9,13 @@ var cors = require('cors')
 
 
 // For development purposes
-/*
+
 app.use(cors({
   credentials: true,
-  origin: "YOUR-ADDRESS-HERE"
+  origin: "http://localhost:3001"
 }));
-*/
+
+
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');

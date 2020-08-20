@@ -340,11 +340,14 @@ router.get('/settings/:ci/:ne', (req, res) => {
     let device_ci = req.params.ci
     let user_ne = req.params.ne
 
-    if (user_token === undefined || device_ci === undefined || user_ne === undefined)
+    let changeCi = false
+    let changeNe = false
+
+    if (user_token === undefined)
     {
         res.json({
             status: "Failure",
-            reason: "Didn't reveice token, new CI time or notif addr"
+            reason: "Didn't reveice token"
         })
     
         return;
@@ -359,27 +362,55 @@ router.get('/settings/:ci/:ne', (req, res) => {
         return;
     }
 
-    if (device_ci === -1) {
-        device_ci = 20
+    console.log("device_ci ", device_ci)
+    console.log("user_ne ", user_ne)
+
+    if (device_ci !== "-1") {
+        changeCi = true
     }
 
-    if (user_ne === "-1") user_ne = ""
+    if (user_ne === "-2") {
+        user_ne = ""
+        changeNe = true
+    }
+
+    if (user_ne !== "-1") {
+        changeNe = true
+    }
 
     if (device_ci > 86400) device_ci = 86400;
     if (device_ci < 10) device_ci = 10;
 
-    User.updateOne(
-        {
-            token: user_token
-        },
-        {
-            $set: {
-                "connection_interval": device_ci,
-                "notification_email": user_ne
+    // Update connection interval
+    if (changeCi) {
+        console.log("changing connection interval")
+        User.updateOne(
+            {
+                token: user_token
+            },
+            {
+                $set: {
+                    "connection_interval": device_ci,
+                }
             }
-        }
-    )
-        .exec()
+        ).exec()
+    }
+    
+
+    // Update notification email
+    if (changeNe) {
+        console.log("changing notification email")
+        User.updateOne(
+            {
+                token: user_token
+            },
+            {
+                $set: {
+                    "notification_email": user_ne
+                }
+            }
+        ).exec()
+    }
 
     res.json({
         status: "Success",
@@ -544,6 +575,11 @@ router.get('/listDevices', (req, res) => {
                     reason: "You don't have any devices... Yet."
                 })
                 return
+            }
+
+            if (response.notification_email === undefined || response.notification_email === "undefined") {
+                console.log("Notification email oli undefined, korjattiin se tyhjaksi")
+                response.notification_email = ""
             }
 
             res.json(response)
