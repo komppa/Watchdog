@@ -11,6 +11,12 @@ static int alert_interval = 0;
 static bool alert_is_pending = false;
 static char server_address[] = "watchdog.rantakangas.com:443";
 s64_t sensor_data_last_sent = 0;
+static bool gps_searching = false;
+
+static double latitude;
+static double longitude;
+
+
 
 char* get_server_address(void) {
     return server_address;
@@ -92,6 +98,28 @@ int get_sensor_data_last_sent(void) {
 
 void set_sensor_data_last_sent(int sdls) {
     sensor_data_last_sent = sdls;
+}
+
+void set_gps_searching(bool new_gps_searching) {
+    gps_searching = new_gps_searching;
+}
+
+bool get_gps_searching(void) {
+    return gps_searching;
+}
+
+
+void set_location(double lat, double lon) {
+    latitude = lat;
+    longitude = lon;
+}
+
+double get_latitude(void) {
+    return latitude;
+}
+
+double get_longitude(void) {
+    return longitude;
 }
 
 bool parse_response(char *pload) {

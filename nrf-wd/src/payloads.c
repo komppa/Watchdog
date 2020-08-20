@@ -11,6 +11,7 @@ char api_path[9] =               "/api/v1/";
 char sensor_endpoint[14] =        "/send/sensor/";
 char alert_endpoint[24] =         "/trigger/alert/movement";
 char registration_endpoint[23] =  "/request/registration/";
+char location_endpoint[16] =  "/send/location/";
 
 int device_imei_lenght = 15;
 
@@ -140,3 +141,90 @@ void status_payload(char *get_url, int *req_size) {
         req_size += sizeof(ss_false) - 1;
     }
 }
+
+void location_payload(char *get_url, int *req_size) {
+
+    printf("@payload: location_payload()  %f %f \n", get_latitude(), get_longitude());
+    printk("___________\n");
+    
+    printf("getter LATITUDE: %f\n", get_latitude());
+    printf("@send_location getter : %f\n", get_latitude());
+
+    printf("getter LONGITUDE: %f\n", get_longitude());
+
+    // Make paylaod from char arrays
+    strcat(get_url, api_path);
+    
+    //strcat(get_url, "123456789012345");
+    strcat(get_url, get_imei());
+
+
+    strcat(get_url, location_endpoint);
+
+
+    
+
+    char latitude_s[10];
+    char longitude_s[11];
+
+    sprintf(latitude_s, "%f\0", get_latitude()); 
+    sprintf(longitude_s, "/%f\0", get_longitude()); // Note slash before longitude
+
+
+    printk("LATT %s\n", latitude_s);
+    printk("LONN %s\n", longitude_s);
+
+    
+
+    strcat(get_url, latitude_s);
+    strcat(get_url, longitude_s);
+
+    req_size = 0;
+    req_size += sizeof(api_path) - 1;
+    req_size += device_imei_lenght;
+    req_size += sizeof(location_endpoint) - 1;
+
+    req_size += sizeof(latitude_s) - 1;
+    req_size += sizeof(longitude_s) - 1;
+
+   
+}
+
+/*
+
+
+    // Get sensor data
+    int temp_int = get_temperature();
+    int hum_int = get_humidity();
+
+    // Get battery charge
+    int battery_charge_lenght = 4; // By default 
+    char *battery_charge = get_device_battery_charge();
+
+    // Calculate how many numbers int contains
+    int temp_n_digits = log10(abs(temp_int)) + 2; // + one number + also one for \0
+    int hum_n_digits = log10(abs(hum_int)) + 2;
+
+    // If int was negative, add one place to negative-mark
+    if (temp_int < 0) temp_n_digits++; 
+    if (hum_int < 0) hum_n_digits++;
+
+    // Arrays for temp & hum
+    char temperature[temp_n_digits];
+    char humidity[hum_n_digits + 1]; // +1 for slash before value
+
+
+    // Ints to char arrays
+    sprintf(temperature, "%d\0", temp_int); 
+    sprintf(humidity, "/%d\0", hum_int); // Note slashes before values!
+
+    // Fake air_uality
+    char air_quality[] = "/-1/";
+
+    // Make paylaod from char arrays
+    strcat(get_url, api_path);
+    strcat(get_url, get_imei());
+    strcat(get_url, sensor_endpoint);
+
+
+    */

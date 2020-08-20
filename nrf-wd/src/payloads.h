@@ -6,7 +6,8 @@ enum {
     SENSOR_DATA,
     REGISTRATION_DATA,
     ALERT_DATA,
-    ARM_DATA
+    ARM_DATA,
+	LOCATION_DATA
 };
 
 void create_payload(char *final_send_buf, char *get_url, int get_url_size);

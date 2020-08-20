@@ -15,3 +15,12 @@ void get_device_imei(void);
 char* get_device_battery_charge(void);
 int get_battery_charge(void);
 int get_battery_level(void);
+
+
+char* cfun_zero(void);
+char* cfun_one(void);
+
+char* system_mode_gps(void);
+char* system_mode_lte(void);
+
+char* cfun_31(void);

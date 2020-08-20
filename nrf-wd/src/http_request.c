@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "http_request.h"
-#include "payloads.h"
+
 
 #define HTTPS_PORT 443
 #define ADDR_MAX_LENGHT 100
@@ -152,6 +152,8 @@ void get_server_ip(void) {
 }
 
 int init_http_request() {
+	
+	printk("@init_http_request\n");
 
     int err;
 
@@ -178,8 +180,11 @@ int init_http_request() {
 		return -1;
 	}
 
+
+	/*
 	printk("Waiting for network..\n");
 
+	
 	err = lte_lc_init_and_connect();
 	if (err) {
         if (err == -120) {
@@ -190,6 +195,7 @@ int init_http_request() {
         }
 		
 	}
+	*/
 	printk("Connected to the network!\n");
     get_server_ip();
     return 0;
@@ -211,28 +217,37 @@ void send_request(char *req_response_buf, int req_type) {
 
     /* Create endpoint address */
     switch (req_type) {
-        case SENSOR_DATA:
+        case 0:
         {
             // SENSOR DATA
             sensor_payload(get_url, req_size);   
             break;
         }
-        case REGISTRATION_DATA:
+        case 1:
         {
             //REGISTRATION_DATA
             registration_payload(get_url, req_size);
             break;
         }
-        case ALERT_DATA:
+        case 2:
         {
             //ALERT_DATA
             alert_payload(get_url, req_size);            
             break;
         }
-        case ARM_DATA:
+        case 3:
         {
             //CHANGE SYSTEM_STATUS
             status_payload(get_url, req_size);
+            break;
+
+        }
+        case 4:
+        {
+            //LOCATION DATA
+            printf("@http_request: send_request (): LOCATION_DATA %f %f \n", get_latitude(), get_longitude());
+            location_payload(get_url, req_size);
+            printk("BACK \n");
             break;
 
         }
@@ -245,6 +260,14 @@ void send_request(char *req_response_buf, int req_type) {
     
     /* Create HTTP request and add previously created endpoint to it */
     create_payload(final_send_buf, get_url, req_size);
+	
+	
+	printk("*** FINAL PAYLOAD IS ***\n");
+	printk("\n");
+	printk("'''%s'''\n", final_send_buf);
+	printk("************************\n");
+	printk("'''%s'''\n", get_url);
+	printk("************************\n");
 
     // Open socket
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TLS_1_2);

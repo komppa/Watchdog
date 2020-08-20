@@ -122,3 +122,69 @@ int get_battery_level(void)
     // There weren't value less that charge, its max value then
     return (sizeof(limit_values) / sizeof(limit_values[0]));
 }
+
+
+// For enabling GPS
+char* system_mode_gps(void)
+{
+    int buffer_size = 15;
+	const char e_command[23] = "AT%XSYSTEMMODE=0,0,1,0"; // BATT
+	enum at_cmd_state state;
+	int ret = at_cmd_write(e_command, device_battery_charge, buffer_size, &state);
+	printk("Err code: %d\n", ret);
+    //at_error_handler(ret, e_command);
+    //at_substring(device_battery_charge, 15, SPACE);
+    return device_battery_charge;
+}
+
+char* system_mode_lte(void)
+{
+	
+	printk("@system_mode_lte \n");
+	
+    int buffer_size = 15;
+	const char e_command[23] = "AT%XSYSTEMMODE=1,0,1,0"; // BATT
+	enum at_cmd_state state;
+	int ret = at_cmd_write(e_command, device_battery_charge, buffer_size, &state);
+	printk("Err code: %d\n", ret);
+    //at_error_handler(ret, e_command);
+    //at_substring(device_battery_charge, 15, SPACE);
+    return device_battery_charge;
+}
+
+// For putting GPS action
+char* cfun_zero(void)
+{
+    int buffer_size = 15;
+	const char e_command[10] = "AT+CFUN=0"; // BATT
+	enum at_cmd_state state;
+	int ret = at_cmd_write(e_command, device_battery_charge, buffer_size, &state);
+	printk("Err code: %d\n", ret);
+    //at_error_handler(ret, e_command);
+    //at_substring(device_battery_charge, 15, SPACE);
+    return device_battery_charge;
+}
+
+char* cfun_one(void)
+{
+    int buffer_size = 15;
+	const char e_command[10] = "AT+CFUN=1"; // BATT
+	enum at_cmd_state state;
+	int ret = at_cmd_write(e_command, device_battery_charge, buffer_size, &state);
+	printk("Err code: %d\n", ret);
+    //at_error_handler(ret, e_command);
+    //at_substring(device_battery_charge, 15, SPACE);
+    return device_battery_charge;
+}
+
+char* cfun_31(void)
+{
+    int buffer_size = 15;
+	const char e_command[10] = "AT+CFUN=31"; // BATT
+	enum at_cmd_state state;
+	int ret = at_cmd_write(e_command, device_battery_charge, buffer_size, &state);
+	printk("Err code: %d from CFUN31\n", ret);
+    //at_error_handler(ret, e_command);
+    //at_substring(device_battery_charge, 15, SPACE);
+    return device_battery_charge;
+}

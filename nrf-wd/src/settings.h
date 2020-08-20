@@ -1,5 +1,8 @@
 #include <zephyr.h>
 
+
+
+
 char* get_server_address(void);
 
 bool alert_pending(void);
@@ -20,3 +23,9 @@ void set_sensor_data_last_sent(int);
 
 bool parse_response(char*);
 
+void set_gps_searching(bool new_gps_searching);
+bool get_gps_searching(void); 
+
+void set_location(double, double);
+double get_latitude(void);
+double get_longitude(void);

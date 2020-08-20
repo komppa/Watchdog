@@ -47,4 +47,3 @@ int calcBtnTime()
     
     return action;    
 }
-

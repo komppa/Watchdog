@@ -29,6 +29,9 @@ zephyr_library_sources(src/btn_handler.c)
 zephyr_library_sources(src/payloads.h)
 zephyr_library_sources(src/payloads.c)
 
+zephyr_library_sources(src/supl_support.h)
+zephyr_library_sources(src/supl_support.c)
+
 
 target_link_libraries(app PUBLIC libm.a)
 
