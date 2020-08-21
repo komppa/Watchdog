@@ -9,12 +9,16 @@ import 'mdbreact/dist/css/mdb.css';
 import { BrowserRouter as Router, Route, useHistory } from "react-router-dom";
 import { srv_addr, api_addr } from '../Config'
 
+
+
+
 // Server env variables
 var server_addr = srv_addr()
 var api_path = api_addr()
 
 const wd_header = require('../images/Watchdog_TITLE.png');
-const watchdog_img = require('../images/watchdog.png');
+//const watchdog_img = require('../images/watchdog.png');
+const watchdog_img = null
 
 
 const Login = (props) => {
@@ -84,6 +88,9 @@ const Login = (props) => {
         height: "3vw",
     }
     
+    
+
+
     return(
         <Route>
         <div style={s_loginSite}>
@@ -97,6 +104,8 @@ const Login = (props) => {
 
                 <h2 style={s_sub_header}>Login</h2>
 
+                
+              
                 <div style={s_inputContainer}>
 
                     <Form onSubmit={handleSubmit}>

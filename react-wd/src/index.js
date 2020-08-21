@@ -7,6 +7,9 @@ import axios from 'axios';
 import * as serviceWorker from './serviceWorker';
 import { srv_addr, api_addr } from './Config'
 
+
+
+
 import Login from './components/Login'
 import Register from './components/Register'
 import { Watchdog, ProtectedWatchdog } from './components/Watchdog'
@@ -19,6 +22,10 @@ import {
 	useHistory,
 	Redirect,
 } from "react-router-dom";
+
+
+import Wdmap from './components/Wdmap';
+
 
 // Server env variables
 var server_addr = srv_addr()
@@ -43,11 +50,23 @@ const App = () => {
 	}, [])
 	
 
-
 	return(
 		<Router>
 
 			{ isLoading ? <Loading isLoading={isLoading} /> :	null }
+
+				<Route exact path="/kartta">
+					
+						<Wdmap
+							deviceName = "Thingy:91"
+							position = {[65.011921, 25.506762]}
+						/>
+					
+				</Route>
+
+				
+			
+
 
 				<Route exact path="/register">
 					<Register />

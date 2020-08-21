@@ -53,47 +53,19 @@ const newDevice = async (new_imei, new_name) => {
     return statusObject
 }
 
-/*
-const connectionInterval = async (new_ci) => {
-    
-    let statusObject = {}
-
-    if (new_ci === undefined) {
-        return
-    }
-    
-    await Axios.get(server_addr + api_path + 'connectionInterval' + '/' + new_ci, {withCredentials: true})
-        .then((response) => {
-            let status = response.data.status == "Success" ? true : false
-            
-            if (status) {
-                statusObject = {status: true, title: "Connection interval changed", text: response.data.reason}
-                // setConnectionInterval(new_ci) !!!
-            } else {
-                statusObject = {status: false, title: "Connection interval changing failed", text: response.data.reason}
-            }
-        })
-        .catch((error) => statusObject = {status: false, title: "Failed to change CI", text: "Couldn't change connection interval"})
-
-
-    // Close settings modal
-    //setShowSettings(false) !!
-    return statusObject
-}
-*/
-
 const changeSettings = async (new_ci, new_notif_email) => {
-
-    //console.log("@changeSettings : " + new_ci + " " + new_notif_email)
 
     if (new_ci.length === 0) {
         console.log("new_ci = lenght 0 ")
         new_ci = -1
     }
-
-    if (new_notif_email.length === 0) {
-        console.log("new_notif_email = lenght 0 ")
-        new_notif_email = -1
+    
+    if (new_notif_email === "") {
+        if (new_notif_email === "") {
+            new_notif_email = "-2"
+        } else {
+            new_notif_email = "-1"
+        }
     }
 
     let statusObject = {}

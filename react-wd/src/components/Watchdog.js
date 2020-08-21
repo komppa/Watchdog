@@ -27,6 +27,7 @@ import FormCheckLabel from 'react-bootstrap/esm/FormCheckLabel';
 import AddDevice from './AddDevice';
 import Settings from './Settings';
 import { srv_addr, api_addr } from '../Config'
+import Wdmap from './Wdmap';
 
 const logout_img = require('../images/logout_img.png');	// Images for header
 const settings_img = require('../images/settings_img.png');
@@ -77,6 +78,7 @@ const Watchdog = (props) => {
 	const [showAddDevice, setShowAddDevice] = useState(false)
 	const [showAnnouncement, setShowAnnouncement] = useState(false)	
 	const [isLoggedIn, setIsLoggedIn] = useState(true)
+	const [showMap, setShowMap] = useState(true)
 
 	const [selectedDevice, setSelectedDevice] = useState("null")
 	const [lastSeen, setLastSeen] = useState("-")
@@ -398,6 +400,16 @@ const Watchdog = (props) => {
 				<Announcement content={announcementContent} /> 
 			: null}
             
+			{/* Location map box */}
+			{showMap ? 
+				<Wdmap
+					position={[65.011921, 25.506762]}
+					deviceName="My device :D"
+					onclick_cross={() => setShowMap(false) }
+				/>
+			: null}
+
+
             {/* TopBar */}
             <Topbar>
 
