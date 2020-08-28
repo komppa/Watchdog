@@ -143,6 +143,7 @@ const HeaderBar = (props) => {
         margin: "auto auto auto 1vw",
         fontWeight: "bold",
         width: "40%",
+        color: "black",
     }
 
     const s_add_device = {

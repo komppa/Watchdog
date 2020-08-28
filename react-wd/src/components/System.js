@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
+import { Button } from 'react-bootstrap';
 
 const clock_img = require('../images/clock_img.png');
 const temp_img = require('../images/temp_img.png');
 const lock_unlock_img = require('../images/lock_unlock_img.png');
 const lock_lock_img = require('../images/lock_lock_img.png');
 const line_img = require('../images/line.png');
-const home_btn_img = require('../images/HOME.png');
-const away_btn_img = require('../images/AWAY.png');
+
+// const home_btn_img = require('../images/HOME.png');
+const home_btn_img = require('../images/home_img_without_text.png');
+
+// const away_btn_img = require('../images/AWAY.png');
+const away_btn_img = require('../images/away_img_without_text.png');
 
 const s_mainStyle = {
 	backgroundColor: "#2E3442",
 	marginLeft: "1vw",
 	height: "10vw",
-	width: "23.75vw",
+	width: "18.8vw", // Changed from 23.75
 	float: "left",
 	borderRadius: "5px",
 }
@@ -36,7 +41,7 @@ const SystemStatus = (props) => {
 		position: "relative",
 		width: "20%",
 		float: "left",
-		left: "2vw",
+		left: "1.5vw",
 	}
 
 	const s_imageAndTextWrapper = {
@@ -52,7 +57,7 @@ const SystemStatus = (props) => {
 
 	const s_texts = {
 		position: "relative",
-		width: "12.5vw",
+		width: "10vw",
 		height: "auto", 
 		textAlign: "center",
 		fontWeight: "bold",
@@ -138,7 +143,7 @@ const SystemStatus = (props) => {
 
 					<div style={{
 						textAlign: "left",
-						fontSize: "2.5vw",
+						fontSize: "2.25vw",
 						width: "100%",
 						color: text_color,
 					}}>
@@ -153,36 +158,13 @@ const SystemStatus = (props) => {
 	
 }
 
-/* Change system status between armed (away) and disarmed (home) */
-const ChangeStatus = (props) => {
-
-	const s_left_box = {
-		float: "left",
-		height: "100%", 
-		width: "49%",
-		display: "flex",
-		
-	}
-
-	const s_right_box = {
-		float: "right", 
-		height: "100%",
-		width: "49%", 
-		display: "flex",
-	}
-
-
-	const s_btn_img = {
-		width: "50%",
-		margin: "auto",
-	}
+const ButtonComponent = (props) => {
 
 	const s_line_div = {
 		float: "left",
 		height: "100%",
 		width: "2%",
 		display: "flex",
-
 	}
 
 	const s_line = {
@@ -190,27 +172,101 @@ const ChangeStatus = (props) => {
 		margin: "auto",
 	}
 
+	const s_right_box = {
+		float: "right", 
+		height: "100%",
+		width: "49%", 
+		display: "flex",
+		margin: "1vw auto auto auto",
+		flexDirection: "column",
+		alignItems: "stretch",
+		justifyContent: "center",
+		alignItems: "center",
+		justifyContent: "center",
+		alignItems: "center",
+	}
 
-	return(
+	const s_left_box = {
+		float: "left",
+		height: "100%", 
+		width: "49%",
+		display: "flex",
+		margin: "1vw auto auto auto",
+		flexDirection: "column",
+		alignItems: "stretch",
+		justifyContent: "center",
+		alignItems: "center",
+	}
+
+	const s_btn_img_wrapper = {
+		width: "70%",
+		height: "40%",
+		alignItems: "center",
+		justifyContent: "center",
+		display: "flex",
+	}
+
+	const img_text_s = {
+		width: "50%",
+		height: "20%",
+		fontSize: "1vw",
+		fontWeight: "bold",
+		textAlign: "center",
+		marginTop: "0.5vw",
+	}
+
+	return (
 		<div style={s_mainStyle}>
 
-			<div style={s_left_box}>
-				<img onClick={props.onclick_disarm} src={home_btn_img} alt={"home"} style={s_btn_img}></img>
+			<div onClick={props.onclick_left_button} style={s_left_box}>
+				<div style={s_btn_img_wrapper}>
+					<img 
+						src={props.src_left_img} 
+						alt={props.alt_left_img} 
+						style={{height: "100%", backgroundSize: "cover", margin: "0"}}>
+					</img>
+				</div>
+				<div style={img_text_s}>{props.left_text}</div>
 			</div>
+
 
 			<div style={s_line_div}>
 				<img src={line_img} alt="line" style={s_line}></img>
 			</div>
 
-			<div style={s_right_box}>
-				<img onClick={props.onclick_arm} src={away_btn_img} alt={"away"} style={s_btn_img}></img>
+			<div onClick={props.onclick_right_button} style={s_right_box}>
+				<div style={s_btn_img_wrapper}>
+					<img
+						src={props.src_right_img} 
+						alt={props.alt_right_img} 
+						style={{height: "100%", backgroundSize: "cover"}}>
+					</img>
+				</div>
+				<div style={img_text_s}>{props.right_text}</div>
 			</div>
 
 		</div>
 	)
 }
 
+/* Change system status between armed (away) and disarmed (home) */
+const ChangeStatus = (props) => {
+	return(
+		<ButtonComponent
+			onclick_left_button={props.onclick_disarm}
+			onclick_right_button={props.onclick_arm}
+			src_left_img={home_btn_img}
+			src_right_img={away_btn_img}
+			alt_left_img="home"
+			alt_right_img="away"
+			left_text="home"
+			right_text="away"
+		/>
+	)
+}
+
 export {
 	SystemStatus,
-	ChangeStatus
+	ChangeStatus,
+	ButtonComponent
 };

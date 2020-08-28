@@ -5,17 +5,16 @@ var logger = require('morgan');
 var api_v1 = require('./routes/api_v1');
 var api_portal = require('./routes/api_portal');
 var app = express();
-var cors = require('cors')
 
 
 // For development purposes
-
+/*
+var cors = require('cors')
 app.use(cors({
   credentials: true,
   origin: "http://localhost:3001"
 }));
-
-
+*/
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');

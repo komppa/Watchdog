@@ -10,11 +10,12 @@ import {Alerts, AlertRow} from './Alerts'
 import {Clock, getClock, getDay} from './Clock'
 import {SystemStatus, ChangeStatus} from './System';
 import Environment from './Environment'
+import Location from './Location'
 import {BigButton} from './GeneralButton';
 import Announcement from './Announcement'
 import {Device} from './Bottombar';
 import { userState, getLoggedIn, setLoggedIn } from './UserState'
-import { systemStatus, newDevice, changeSettings, logout, alertCheck } from '../DataHandler'
+import { systemStatus, newDevice, changeSettings, logout, alertCheck, requestLocation } from '../DataHandler'
 import {
 	BrowserRouter as Router,
 	Switch,
@@ -35,6 +36,11 @@ const plus_btn_img = require('../images/plus_img.png');	//For adding a new devic
 const ok_img = require('../images/ok_img.png');	// For alerts checking
 const warn_img = require('../images/warn_img.png');
 
+// Images for GPS
+const gps_found = require('../images/gps_found.png');
+const gps_not_fixed = require('../images/gps_not_fixed.png');
+const gps_disabled = require('../images/gps_disabled.png');
+
 // Server env variables
 var server_addr = srv_addr()
 var api_path = api_addr()
@@ -44,6 +50,7 @@ var deviceSelected = false	//@startup
 
 var devices;
 var currentDevice;
+var mostRecentLocation = [0,1,1,"dev"]
 
 
 var announcementContent = {
@@ -78,7 +85,7 @@ const Watchdog = (props) => {
 	const [showAddDevice, setShowAddDevice] = useState(false)
 	const [showAnnouncement, setShowAnnouncement] = useState(false)	
 	const [isLoggedIn, setIsLoggedIn] = useState(true)
-	const [showMap, setShowMap] = useState(true)
+	const [showMap, setShowMap] = useState(false)
 
 	const [selectedDevice, setSelectedDevice] = useState("null")
 	const [lastSeen, setLastSeen] = useState("-")
@@ -88,7 +95,12 @@ const Watchdog = (props) => {
 	const [alerts, setAlerts] = useState([])
 
 	const [ci, setCi] = useState(null)
+	const [loa, setLoa] = useState(false)
 	const [notif, setNotif] = useState(null)
+
+	//const [mostRecentLocation, setMostRecentLocation] = useState([])
+	const [mapData, setMapData] = useState([0, 0, 0])
+	const [newLocationArrived, setNewLocationArrived] = useState(false)
     
     {/* Fetch data from the server if user has logged in */}
 	useEffect(() => {
@@ -232,15 +244,27 @@ const Watchdog = (props) => {
                 }
                 fetchData()
             })
-    }
+	}
+	
+	const sendLocationRequest = (device_imei) => {
+
+				
+		
+		requestLocation(device_imei)
+			.then((res) => {
+				if (res.status) {
+					showAnnonce(res.title, res.text)
+				} else {
+					showAnnonce(res.title, res.text)
+				}
+			})
+		
+	}
 
 
 	const fetchData = () => {
 		
-		let command = 'listDevices'
-		let url = server_addr + api_path + command;
-		
-		axios.get(url, {withCredentials: true})	
+		axios.get(server_addr + api_path + 'listDevices', {withCredentials: true})	
 			.then((srv_data) => {
 
 				if (srv_data.data.status === "Not logged in" || srv_data.data.status === "Failure") {
@@ -255,7 +279,7 @@ const Watchdog = (props) => {
 					return
 				}
 
-				if (srv_data.data.status !== "Failure") {
+				if (srv_data.data.status !== "Failure") {	// If not failure - success!
 					setShowLoginPage(false)
 					srvDataHandler(srv_data)
 					setShowMainPage(true)
@@ -264,7 +288,7 @@ const Watchdog = (props) => {
 
 				if (srv_data.data == undefined || srv_data.data == null) {
 					setShowLoginPage(true)
-					showAnnonce("System failure", "You< don't have permission to fetch data from server. ")
+					showAnnonce("System failure", "You don't have permission to fetch data from server. ")
 					return
 				}				
 			})
@@ -279,15 +303,15 @@ const Watchdog = (props) => {
 		}, 4000)
 	}
 
-
 	const getDevices = (devices) => {
 		
 		let all_devices = []
+		var newest_location_timestamp = 0
 
 		devices.map(device => {
 
 			let device_last_seen = device.last_seen_timestamp
-			let device_temperature, device_humidity, device_battery
+			let device_temperature, device_humidity, device_battery, device_location
 
 			// Get most recent temperature from environmental data
 			let env_max_timestamp = 0
@@ -299,6 +323,24 @@ const Watchdog = (props) => {
 					device_battery = env_data.battery
 				}
 			})
+			
+
+			// Get most recent location from location
+			device_location = device.location[device.location.length - 1]
+
+			if (device_location === undefined) {
+				device_location = [0, 0]
+			} else {
+				// Save the most recent location's timestamp that system can know if new location has been arrived
+				if (device_location.location_timestamp > newest_location_timestamp) {
+					newest_location_timestamp = device_location.location_timestamp
+
+					newest_location_timestamp = device_location.location_timestamp
+					mostRecentLocation[3] = device.friendly_name === undefined ? device.imei : device.friendly_name
+				}
+			}
+
+
 
 			let new_device = {
 				name: device.friendly_name === undefined ? device.imei : device.friendly_name,
@@ -309,6 +351,9 @@ const Watchdog = (props) => {
 				temperature: device_temperature,
 				humidity: device_humidity,
 				last_seen: device_last_seen,
+				last_location: [
+					device_location.latitude !== undefined ? device_location.latitude : 0 ,
+					 device_location.longitude !== undefined ? device_location.longitude : 0]
 			}
 
 			all_devices.push(new_device)
@@ -317,6 +362,26 @@ const Watchdog = (props) => {
 
 		setDevs(all_devices)
 
+		if (mostRecentLocation[0] !== newest_location_timestamp) {
+			if (deviceSelected) {
+				if ((mostRecentLocation[1] === 0 || mostRecentLocation[2] === undefined) && (mostRecentLocation[1] === 0 || mostRecentLocation[2] === undefined)) {
+					showAnnonce("GPS Failure", "The device could not get a GPS fix")
+					mostRecentLocation[1] = 0
+					mostRecentLocation[2] = 0
+				} else {
+					showAnnonce("Location arrived!", "Your device " + mostRecentLocation[3] + " updated its location! Press map icon to show map.")
+					setNewLocationArrived(true)
+					lastAnnouncement = "" // Resets last annonce that same annonce can be shown multiply times in a row
+				}
+				
+			} else {
+			}
+
+			mostRecentLocation[0] = newest_location_timestamp
+			mostRecentLocation[0] = newest_location_timestamp
+			mostRecentLocation[0] = newest_location_timestamp
+
+		}
 	}
 
 	const getAlerts = (devices) => {
@@ -331,6 +396,22 @@ const Watchdog = (props) => {
 								? device.imei
 								: device.friendly_name 
 				alert.imei = device.imei
+
+				// If alert doesn't have location object in it - gps_disabled
+				if (alert.location === undefined) {
+					alert.location_status = gps_disabled
+				} else {
+					// If alert location lat and lon is 0 - GPS not fix
+					if (alert.location.latitude === 0 && alert.location.longitude === 0) {
+						alert.location_status = gps_not_fixed
+					} else {
+						alert.location_status = gps_found
+						alert.latitude = alert.location.latitude
+						alert.longitude = alert.location.longitude
+						// Location ok
+					}
+				}
+
 				new_alerts.push(alert)
 			})
 		})
@@ -347,16 +428,46 @@ const Watchdog = (props) => {
 
 	}
 
+
+	const getLocForSelDev = (isLongitude) => {
+
+		let loc
+		
+		devs.map((device) => {
+
+			if (device.imei === selectedDevice) {
+				if (!isLongitude) {
+					loc = device.last_location[0]		
+				} else {
+					loc = device.last_location[1]		
+				}
+				
+			}
+			
+		})
+		return loc
+	}
+	
+	
+
 	const srvDataHandler = res => {
 
 		// Set connection interval from DB's body to the useState
 		setCi(res.data.connection_interval)
+	
+		setLoa(res.data.loa)
 
 		// Set notification email from DB to notif useState
 		setNotif(res.data.notification_email)
 
 		// Get global connection interval and set it to variable and useState
 		devices = res.data.devices
+
+
+
+		getAlerts(devices)
+		getDevices(devices)
+		//getMostRecentLocation(devices)
 
 		// If selected device is null / undefined, selecting first device from list
 		if (!deviceSelected) {
@@ -368,8 +479,7 @@ const Watchdog = (props) => {
 			}
 		}
 
-		getAlerts(devices)
-		getDevices(devices)
+		
 		
 	}
 
@@ -384,6 +494,7 @@ const Watchdog = (props) => {
 					onclick_cross={() => setShowSettings(false)}
 					connection_interval={ci}
 					notification_email={notif}
+					location_on_alert={loa}
 				/>
 			: null }
 
@@ -403,12 +514,11 @@ const Watchdog = (props) => {
 			{/* Location map box */}
 			{showMap ? 
 				<Wdmap
-					position={[65.011921, 25.506762]}
-					deviceName="My device :D"
+					position={[mapData[1], mapData[2]]}
+					deviceName={[mapData[0]]}
 					onclick_cross={() => setShowMap(false) }
 				/>
 			: null}
-
 
             {/* TopBar */}
             <Topbar>
@@ -446,7 +556,17 @@ const Watchdog = (props) => {
                     onclick_arm={() => changeSystemStatus(true)}
                     onclick_disarm={() => changeSystemStatus(false)}
                 />
-                
+
+				<Location
+					onclick_find_device={() => sendLocationRequest(selectedDevice)}
+					new_location={newLocationArrived}
+					onclick_map={() => {
+						setMapData([getFriendlynameByImei(selectedDevice), getLocForSelDev(false), getLocForSelDev(true)])
+						setShowMap(true)
+						setNewLocationArrived(false)
+					}}
+				/>
+
                 <Environment 
                     selectedDevice={selectedDevice}
                     devices={devs}
@@ -456,7 +576,7 @@ const Watchdog = (props) => {
 
             <Bottombar windowHeight={windowHeight}>
                 <Devices onclick_addDevice={() => setShowAddDevice(true)}>
-                    { 
+                    {
                         devs.map(data =>
                             <Device
                                 key={data.imei}
@@ -480,9 +600,16 @@ const Watchdog = (props) => {
                                 id={data._id}
                                 first_row={data.alert_timestamp}
                                 second_row={data.name}
-                                third_row={data.reason}
-                                fourth_row={data.checked ? null : <a href="#" style={{color: "white"}}>click to check</a>}
-                                img_src={data.checked ? ok_img : warn_img}
+								third_row={data.reason}
+								location_img_src={data.location_status}
+								allowMapFunc={data.location_status === gps_found ? true : false}
+								onclick_locationBtn={() => {
+									setMapData([data.name, data.latitude, data.longitude])
+									setShowMap(true)
+								}}
+								fourth_row={data.location_status === gps_found ? "" : ""}
+								fifth_row={data.checked ? null : <a href="#" style={{color: "white"}}>click to check</a>}
+                                checked_img_src={data.checked ? ok_img : warn_img}
                                 onclick_checkedBtn={() => changeAlertCheck(data._id, data.imei, data.checked)}
                             />
                         )

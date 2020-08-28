@@ -56,7 +56,6 @@ const newDevice = async (new_imei, new_name) => {
 const changeSettings = async (new_ci, new_notif_email) => {
 
     if (new_ci.length === 0) {
-        console.log("new_ci = lenght 0 ")
         new_ci = -1
     }
     
@@ -80,17 +79,14 @@ const changeSettings = async (new_ci, new_notif_email) => {
             let status = response.data.status == "Success" ? true : false
             
             if (status) {
-                statusObject = {status: true, title: "Connection interval changed", text: response.data.reason}
+                statusObject = {status: true, title: "Settings saved", text: "Settings were saved to the database successfully"}
                 // setConnectionInterval(new_ci) !!!
             } else {
-                statusObject = {status: false, title: "Connection interval changing failed", text: response.data.reason}
+                statusObject = {status: false, title: "Settings saving failed", text: response.data.reason}
             }
         })
-        .catch((error) => statusObject = {status: false, title: "Failed to change CI", text: "Couldn't change connection interval"})
+        .catch((error) => statusObject = {status: false, title: "Failed to change settings", text: "Couldn't save settings to the database"})
 
-
-    // Close settings modal
-    //setShowSettings(false) !!
     return statusObject
 }
 
@@ -103,8 +99,6 @@ const logout = async () => {
         .then((response) => {
             if (response.data.status === "Success") {
                 statusObject = {status: true, title: "Logged out successfully", text: "See you soon!"}
-                //showAnnonce("Logged out successfully", "You have logged out. See you soon!")
-                //setIsLoggedIn(false)
                 
             } else {
                 statusObject = {status: false, title: "System failure", text: "Couldn't log out."}
@@ -126,10 +120,50 @@ const alertCheck = async (alert_id, alert_imei, alert_checked) => {
 
 }
 
+const requestLocation = async (device_imei) => {
+
+    let statusObject = {status: true}
+
+    await Axios.get(server_addr + api_path + "request/location/" + device_imei, {withCredentials: true})
+        .catch((error) => statusObject = {status: false, title: "Couldn't send location request", text: error})
+        .then((response) => {
+            if (response.data.status === "Success") {
+                statusObject = {status: true, title: "Location request sent!", text: "Searching your device..."}
+            } else {
+                statusObject = {status: false, title: "Couldn't send location request", text: "Server didn't like your request"}
+            }
+        })
+
+    return statusObject
+
+}
+
+const changeLocationOnAlert = async (new_value) => {
+
+    let statusObject = {status: true}
+
+    await Axios.get(server_addr + api_path + "loa/" + new_value , {withCredentials: true})
+        .catch((error) => statusObject = {status: false, title: "Couldn't send location request", text: error})
+        .then((response) => {
+            if (response.data.status === "Success") {
+                statusObject = {status: true, title: "Location request sent!", text: "Searching your device..."}
+            } else {
+                statusObject = {status: false, title: "Couldn't send location request", text: "Server didn't like your request"}
+            }
+        })
+
+    return statusObject
+    
+}
+
+
+
 export {
     systemStatus,
     newDevice,
     changeSettings,
     logout,
     alertCheck,
+    requestLocation,
+    changeLocationOnAlert,
 }

@@ -1,15 +1,32 @@
 var express = require('express');
 var router = express.Router();
+const crypto = require('crypto')
 const assert = require('assert');
 const User = require('./mdb');
 const { response } = require('express');
 const { ObjectId } = require('mongodb');
 const { request } = require('http');
+const { setMaxListeners } = require('process');
+const { stat } = require('fs');
+const { setFlagsFromString } = require('v8');
 
 // Return time since epoch
 const getTime = () => {
     let time = new Date()
     return Math.floor(time.getTime() / 1000)
+}
+
+// Generating new token that has specific lenght
+const generateToken = (lenght) => {
+    var random_token = crypto.randomBytes(lenght).toString('hex');
+    return random_token
+}
+
+const setLoa = (user_token, new_value) => {
+    User.updateOne(
+        { token: user_token }, 
+        { $set: { loa: new_value } }
+    ).exec()
 }
 
 /* Set or unset device's pending flag by IMEI */
@@ -68,6 +85,35 @@ const deviceExists = async (device_imei) => {
         return device_exists
 }
 
+const getSln = async (device_imei) => {
+
+    let sendLocationNow
+
+    await User.findOne({"devices.imei": device_imei}, 'devices.sln')
+        .then(response => sendLocationNow = response.devices[0].loa)
+
+    return sendLocationNow
+    
+}
+
+
+
+const setSln = (device_imei, new_value) => {
+    
+    User.updateOne(
+        {
+            "devices.imei": device_imei,
+        }, 
+        {
+            $set: {
+                "devices.$.sln": new_value
+            }
+        }
+    )
+        .exec()
+
+}
+
 // Update friendly name to device
 router.get('/updateFriendlyname/:imei/:friendly_name', (req, res) => {
 
@@ -121,8 +167,6 @@ router.get('/updateFriendlyname/:imei/:friendly_name', (req, res) => {
         })
 
 })
-
-
 
 // Add device to user
 router.get('/addDevice/:imei/:friendly_name', (req, res) => {
@@ -222,7 +266,7 @@ router.get('/addDevice/:imei/:friendly_name', (req, res) => {
                 // There are no device with this imei
                 res.json({
                     status: "Failure", 
-                    reason: "There is no device with IMEI " + device_imei
+                    reason: "There is no device with IMEI " + device_imei + ". Please start your device, wait a while and then try again."
                 })
 
                 return;
@@ -260,6 +304,56 @@ const changeChecked = async (alert_imei, alert_id, status) => {
 
     return 0
 }
+
+router.get('/loa/:status', (req, res) => {
+
+    const status = req.params.status
+    const user_token = req.cookies.token
+
+    if ((status !== "true" && status !== "false")) {
+        res.json({
+            status: "Failure",
+            reason: "Status wasn't in correct format"
+        })
+        return 
+    } else {
+        
+        if (status === "true") {
+            setLoa(user_token, true)
+        } else {
+            setLoa(user_token, false)
+        }
+        
+        res.json({
+            status: "Success",
+            reason: "Location on alert status updated"
+        })
+
+    }
+})
+
+router.get('/request/location/:imei', (req, res) => {
+
+    const device_imei = req.params.imei
+    const user_token = req.cookies.token
+
+    if (device_imei === undefined) {
+
+        res.json({
+            status: "Failure",
+            reason: "Missing IMEI"
+        })
+        return
+    } 
+
+    setSln(device_imei, true)
+        
+    res.json({
+        status: "Success",
+        reason: "Sent location request"
+    })
+        
+})
 
 /* Change alert's status to checked or unchecked */
 router.get('/check/:imei/:id/:status', (req, res) => {
@@ -362,8 +456,6 @@ router.get('/settings/:ci/:ne', (req, res) => {
         return;
     }
 
-    console.log("device_ci ", device_ci)
-    console.log("user_ne ", user_ne)
 
     if (device_ci !== "-1") {
         changeCi = true
@@ -383,7 +475,6 @@ router.get('/settings/:ci/:ne', (req, res) => {
 
     // Update connection interval
     if (changeCi) {
-        console.log("changing connection interval")
         User.updateOne(
             {
                 token: user_token
@@ -399,7 +490,6 @@ router.get('/settings/:ci/:ne', (req, res) => {
 
     // Update notification email
     if (changeNe) {
-        console.log("changing notification email")
         User.updateOne(
             {
                 token: user_token
@@ -474,6 +564,7 @@ router.get('/arm/:imei', (req, res) => {
         status: "Success",
         reason: "System armed successfully"
     })
+	
 })
 
 /* Disarming the system */
@@ -526,7 +617,8 @@ router.get('/listDevices', (req, res) => {
         'devices.alert',
         'devices.environment',   
         'devices.connection_interval',   
-        
+        'devices.location',
+        'loa',
     ]
 
     User.findOne({token: user_token}, whatToReturn)
@@ -586,6 +678,12 @@ router.get('/listDevices', (req, res) => {
         })
 })
 
+
+
+
+
+
+
 /* Change token to the database and don't send it to the user */
 router.delete('/token', (req, res) => {
     
@@ -598,37 +696,33 @@ router.delete('/token', (req, res) => {
         })
         return
     }
-
-    // Generating new token that user doesn't know
-    require('crypto').randomBytes(48, function(err, buffer) {
-        let random_token = buffer.toString('hex');
-        if (random_token.length === (48*2)) {
-            User.updateOne(
-                {
-                    token: user_token,
-                },
-                {
-                    $set: {
-                        token: random_token,
-                    }
-                }
-            )
-                .exec()
-                .then(() => {
-                    res.clearCookie("token");
-                    res.json({
-                        status: "Success",
-                        reason: "Token removed from the database"
-                    })
-                })
-                .catch(() => {
-                    res.json({
-                        status: "Failure", 
-                        reason: "Server couldn't remove token from database"
-                    })
-                })
+    
+    let random_token = generateToken(48)
+    
+    User.updateOne(
+        {
+            token: user_token,
+        },
+        {
+            $set: {
+                token: random_token,
+            }
         }
-    })
+    )
+        .exec()
+        .then(() => {
+            res.clearCookie("token");
+            res.json({
+                status: "Success",
+                reason: "Token removed from the database"
+            })
+        })
+        .catch(() => {
+            res.json({
+                status: "Failure", 
+                reason: "Server couldn't remove token from database"
+            })
+        })
 })
 
 /* Check if username is taken */
@@ -662,26 +756,13 @@ router.post('/register', (req, res) => {
 
     const username = req.body.username
     const notificationEmail = req.body.notificationEmail
-    const password = req.body.password
-    const verifyPassword = req.body.verifyPassword
+    var user_password = generateToken(4)
 
     // Check if all fields are filled (except notif. email because that isn't mandratory)
-    if (
-        username.length == 0 || 
-        password.length == 0 || 
-        verifyPassword.length == 0
-    )   {
+    if (username.length == 0)   {
         res.json({
             status: "Failure", 
             reason: "Username or password missing"
-        })
-        return 
-    }
-    // Check if passwords match
-    if (password !== verifyPassword) {
-        res.json({
-            status: "Failure", 
-            reason: "Passwords doesn't match"
         })
         return
     }
@@ -701,7 +782,7 @@ router.post('/register', (req, res) => {
                 username: username,
                 user_email: "user@example.com",
                 notification_email: notificationEmail,
-                password: password,
+                password: user_password,
                 connection_interval: 20,
                 last_login_timestamp: 0,
                 last_login_addr: "none",
@@ -719,7 +800,8 @@ router.post('/register', (req, res) => {
         
                 res.json({
                     status: "Success", 
-                    reason: "Account created"
+                    reason: "Account created",
+                    password: user_password,
                 })
             })
         })
@@ -759,42 +841,43 @@ router.post('/login', (req, res) => {
             if (
                 result[0].username === username.toString() &&
                 result[0].password === password.toString()
-            ) {
-                require('crypto').randomBytes(48, function(err, buffer) {
-                    let token = buffer.toString('hex');
-                
-                    if (token.length === (48*2)) {
-                        // Token is long enough
-                        User.updateOne(
-                            {
-                                username: username,
-                                password: password,
-                            },
-                            {
-                                $set: {
-                                    "token": token
-                                }
+            )
+            {
+
+                let token = generateToken(48)
+            
+                if (token.length === (48*2)) {
+                    // Token is long enough
+                    User.updateOne(
+                        {
+                            username: username,
+                            password: password,
+                        },
+                        {
+                            $set: {
+                                "token": token
                             }
-                        )
-                            .exec()
-                            .then(() => {
-                                
-                                res.cookie("token", token, {expire: (600000 + Date.now())});
-                                res.json({
-                                    status: "Success", 
-                                    reason: "Token generated successfully",
-                                })
+                        }
+                    )
+                        .exec()
+                        .then(() => {
+                            
+                            res.cookie("token", token, {expire: (600000 + Date.now())});
+                            res.json({
+                                status: "Success", 
+                                reason: "Token generated successfully",
                             })
-                            .catch((err) => {
-                                console.log(err)
+                        })
+                        .catch((err) => {
+                            console.log(err)
 
-                                res.json({
-                                    status: "Failure",
-                                    reason: "Server couldn't pass new geenrated token to the database",
-                                    err: err
-                                })
-
+                            res.json({
+                                status: "Failure",
+                                reason: "Server couldn't pass new geenrated token to the database",
+                                err: err
                             })
+
+                        })
                         
                     } else {
                         res.json({
@@ -802,7 +885,6 @@ router.post('/login', (req, res) => {
                             reason: "Error @ token generating",
                         })
                     }
-                }) // req crypto
             } else {
                 res.json({
                     status: "Failure", 

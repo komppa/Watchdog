@@ -24,12 +24,12 @@ const Modal = (props) => {
         zIndex: "10",
     }
 
-    const modal_box = {
-        backgroundColor: "#00E5FF",
+    var modal_box = {
+        backgroundColor: "white", // #00E5FF
         borderRadius: "5px",
         zIndex: "11",
         position: "relative",
-        height: "45vh", 
+        height: "45vh",
         width: "45vw",
         top: "27.5vh",
         left: "27.5vw",
@@ -41,7 +41,7 @@ const Modal = (props) => {
         fontSize: "1.1vw",
         height: "25vh",
         width: "40vw",
-        backgroundColor: "#00E5FF",
+        backgroundColor: "white",
         margin: "5vh auto 0 auto",
 
     }
@@ -49,7 +49,7 @@ const Modal = (props) => {
     const modal_button_box = {
         height: "5vh",
         width: "40vw",
-        backgroundColor: "#00E5FF",
+        backgroundColor: "white",
         margin: "auto",
     }
 
@@ -88,6 +88,10 @@ const Modal = (props) => {
         }
     }
 
+    if (props.isTos) {
+        modal_box.height = "57.5vh"
+    }
+
     return(
         <div style={modal_dimmerground}>
             <div ref={modal_box_ref} style={modal_box}>
@@ -103,10 +107,16 @@ const Modal = (props) => {
                     {props.children}
                 </div>
 
-                <div style={modal_button_box}>
-                    <img src={apply_img} style={s_btn_img} onClick={() => props.onclick_apply()}></img>
-                    <img src={cancel_img} style={s_btn_img} onClick={() => closeModal()}></img>
-                </div>
+                {
+                    !props.isTos
+                    ?
+                        <div style={modal_button_box}>
+                            <img src={apply_img} style={s_btn_img} onClick={() => props.onclick_apply()}></img>
+                            <img src={cancel_img} style={s_btn_img} onClick={() => closeModal()}></img>
+                        </div>
+                    : null
+                }
+                
 
             </div>
         </div>

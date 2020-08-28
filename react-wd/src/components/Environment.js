@@ -26,7 +26,7 @@ const Environment = (props) => {
             top_text="Current temperature" 
             middle_text={temperature == undefined ? "-" : temperature + "°C"} 
             middle_text_color="#00E5FF" 
-            bottom_text={"Device last seen " + lastSeen} 
+            bottom_text={"Last seen " + lastSeen} 
             
         />
     )

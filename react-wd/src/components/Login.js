@@ -17,8 +17,8 @@ var server_addr = srv_addr()
 var api_path = api_addr()
 
 const wd_header = require('../images/Watchdog_TITLE.png');
-//const watchdog_img = require('../images/watchdog.png');
-const watchdog_img = null
+const watchdog_img = require('../images/watchdog.png');
+
 
 
 const Login = (props) => {
@@ -39,10 +39,10 @@ const Login = (props) => {
                 } else {
                     console.log("ERROR WITH LOGIN: ", result.data.err)
                     alert(result.data.reason)
+                    setPassword("")
                 }
             })
             .catch((err) => console.log("Couldn't log in. " + err))
-   
     }
 
     const s_loginSite = {
@@ -74,7 +74,7 @@ const Login = (props) => {
     const s_img = {
         position: "absolute",
         height: "20vw",
-        right: "5vw",
+        right: "30vw",
         bottom: "5vw",
     }
 

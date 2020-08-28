@@ -7,7 +7,7 @@ const GeneralInfoBox = (props) => {
         backgroundColor: "#2E3442",
         marginLeft: "1vw",
         height: "10vw",
-        width: "23.75vw",
+        width: "18.8vw", // Changed from 23.75
         float: "left",
         borderRadius: "5px",
     }
@@ -16,7 +16,7 @@ const GeneralInfoBox = (props) => {
 		position: "relative",
 		width: "20%",
 		float: "left",
-		left: "2vw",
+		left: "1.5vw",
 	}
 
 	const s_imageAndTextWrapper = {
@@ -32,7 +32,7 @@ const GeneralInfoBox = (props) => {
 
 	const s_texts = {
 		position: "relative",
-		width: "15vw",
+		width: "10vw",
 		height: "auto", 
 		textAlign: "center",
 		fontWeight: "bold",
@@ -45,7 +45,7 @@ const GeneralInfoBox = (props) => {
 	}
 
 	const s_bigText = {
-		fontSize: "4vw",
+		fontSize: "3.5vw",
 		width: "100%",
 		color: props.middle_text_color,
     };

@@ -31,6 +31,7 @@ const userSchema = new mongoose.Schema({
     last_login_timestamp: Number,
     last_login_addr: String,
     connection_interval: Number,
+    loa: Boolean,                   // Location on alert
 
     
     devices: [
@@ -42,13 +43,18 @@ const userSchema = new mongoose.Schema({
             registration_timestamp: Number,
             last_seen_timestamp: Number,
             connection_interval: Number,
-            pending: Boolean,
+            pending: Boolean,               // Is armed status pending
+            sln: Boolean,                   // Send location flag
 
             alert: [
                 {
                     alert_timestamp: Number,
                     reason: String,
                     checked: Boolean,
+                    location: {
+                        latitude: Number,
+                        longitude: Number
+                    }
                 }
             ],
 
@@ -60,8 +66,15 @@ const userSchema = new mongoose.Schema({
                     air_quality: Number,
                     battery: Number,
                 }
-            ]
+            ],
 
+            location: [
+                {
+                    location_timestamp: Number,
+                    latitude: Number,
+                    longitude: Number,
+                }
+            ]
         }
     ]
 })

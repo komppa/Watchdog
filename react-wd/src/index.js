@@ -6,10 +6,6 @@ import './index.css';
 import axios from 'axios';
 import * as serviceWorker from './serviceWorker';
 import { srv_addr, api_addr } from './Config'
-
-
-
-
 import Login from './components/Login'
 import Register from './components/Register'
 import { Watchdog, ProtectedWatchdog } from './components/Watchdog'
@@ -25,7 +21,6 @@ import {
 
 
 import Wdmap from './components/Wdmap';
-
 
 // Server env variables
 var server_addr = srv_addr()
@@ -59,14 +54,10 @@ const App = () => {
 					
 						<Wdmap
 							deviceName = "Thingy:91"
-							position = {[65.011921, 25.506762]}
+							position = {[65, 25]}
 						/>
 					
 				</Route>
-
-				
-			
-
 
 				<Route exact path="/register">
 					<Register />

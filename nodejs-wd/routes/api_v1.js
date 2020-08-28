@@ -6,7 +6,16 @@ const User = require('./mdb');
 const { response } = require('express');
 const { ObjectId } = require('mongodb');
 const { request } = require('http');
-const nodemailer = require("nodemailer")
+const nodemailer = require("nodemailer");
+const { getUnpackedSettings } = require('http2');
+const { stat } = require('fs');
+
+dotenv.config({path: './sderc.env'});
+
+let smtp_host = process.env.SMTP_HOST
+let smtp_port = process.env.SMTP_PORT
+let smtp_user = process.env.SMTP_USER
+let smtp_password = process.env.SMTP_PASSWORD
 
 dotenv.config({path: './sderc.env'});
 
@@ -24,11 +33,11 @@ const getTime = () => {
 const mailer = async (recvEmail, triggeredDevice, reason) => {
     
     const transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
+        host: smtp_host,
+        port: smtp_port,
         auth: {
-            user: 'dallas.hermann@ethereal.email',
-            pass: 'HP8uFX1ezuBKD6BnG3'
+            user: smtp_user,
+            pass: smtp_password
         }
     });
 
@@ -91,48 +100,128 @@ const deviceExists = async (device_imei) => {
         return device_exists
 }
 
+
+const getLoa = async (device_imei) => {
+
+    let locationOnAlert
+
+    await User.findOne({"devices.imei": device_imei}, 'loa')
+        .then(response => locationOnAlert = response.loa)
+
+    return locationOnAlert
+    
+}
+
+
+const setLoa = (device_imei, new_value) => {
+    User.updateOne(
+        { "devices.imei": device_imei }, 
+        { $set: { loa: new_value } }
+    ).exec()
+}
+
+
+const getSln = async (device_imei) => {
+
+    let sendLocationNow
+
+    await User.findOne({"devices.imei": device_imei}, 'devices.sln')
+        .then(response => sendLocationNow = response.devices[0].loa)
+
+    return sendLocationNow
+    
+}
+
+
+
+const setSln = (device_imei, new_value) => {
+    
+    User.updateOne(
+        {
+            "devices.imei": device_imei,
+        }, 
+        {
+            $set: {
+                "devices.$.sln": new_value
+            }
+        }
+    )
+        .exec()
+
+}
+
 /* Get device's settings like arming status and connection interval */
 const getSettings = async (device_imei) => {
 
     var device_armed
     var device_ci
+    var device_loa
+    var device_sln
+
+    let settings
 
     await User.find(
-        {"devices.imei": device_imei}
+        {"devices.imei": device_imei},
+        {
+            "devices.$[]": 1,
+            "loa": 1 
+        }
     )
         .then(result => {
-            result[0].devices.map((device) => {
-                if (device.imei.toString() === device_imei) {
 
-                    // Checks if device is so new that it doesn't have arming status or CI
-                    if (device.armed == undefined || device.armed == null) {
-                        // Our lovely database has no clue whether the device is in armed or disarmed state
-                        device_armed = false // default value is disarmed if unknown
-                    } else {
-                        device_armed = device.armed
-                    }
-                }
-            })
+            
 
-            // Checking if device belong to some user and that way connection interval is known
-            let ci_cand = result[0].connection_interval
-            if (ci_cand !== undefined) {
-                device_ci = ci_cand
-            } else {
-                device_ci = 60 // default value if unknown
+            device_armed = result[0].devices[0].armed
+            // Checks if device is so new that it doesn't have arming status or CI
+            if (device_armed !== true && device_armed !== false) {
+                // Our lovely database has no clue whether the device is in armed or disarmed state
+                device_armed = false // default value is disarmed if unknown
             }
 
-            // If there weren't device like this, return defualts to avoid crashes :)
-            device_armed = device_armed === undefined ? false : device_armed
+            // Checking if device belong to some user and that way connection interval is known
+            device_ci = result[0].connection_interval
+            if (device_ci === undefined) {
+                device_ci = 15 // default value if unknown
+            }
 
-        });
+            device_loa = result[0].loa
+            if (device_loa !== true && device_loa !== false) {
+                device_loa = false
+            }
 
-        // Make JSON for settings
-        let settings = {
-            status: "Success",
-            armed: device_armed,
-            ci: device_ci,
-        }
+            device_sln = result[0].devices[0].sln
+            if (device_sln !== true && device_sln !== false) {
+                device_sln = false
+            }
+            
+            /*
+                Because Thingy can obtain request to send its location
+                if sln (send location now) was true, we can set its 
+                value to false that it woudn't send it again and again
+            */
+            setSln(device_imei, false)
+
+            // Make JSON for settings
+            settings = {
+                status: "Success",
+                armed: device_armed,
+                ci: device_ci,
+                loa: device_loa,
+                sln: device_sln
+            }
+
+        })
+        .catch(() => {
+            
+            // Make JSON for settings
+            settings = {
+                status: "Success",
+                armed: false,
+                ci: 15,
+                loa: false,
+                sln: false
+            }   
+        })
 
         return settings
 }
@@ -238,9 +327,7 @@ router.get('/:imei/send/sensor/:temp/:hum/:air_q/:volt', (req, res) => {
     
                     new_device_entry.save().then(
                         (savedUser) => {
-                            getSettings(device_imei)
-                                .then((settings) => res.json(settings))
-
+                            console.log("New device's data saved to the DB")
                         }
                     )  
                 } 
@@ -251,10 +338,119 @@ router.get('/:imei/send/sensor/:temp/:hum/:air_q/:volt', (req, res) => {
 
                 // Get current settings from DB and return them
                 getSettings(device_imei)
-                    .then(settings => res.json(settings))
+                    .then(settings => {
+                        console.log(settings)
+                        res.json(settings)
+                    })
             })
     }
 })
+
+
+// Put location to device's location array
+const locationToLocations = (device_imei, latitude, longitude) => {
+
+    var new_location_data = {
+        location_timestamp: getTime(),
+        latitude: latitude,
+        longitude: longitude 
+    };    
+
+    User.updateOne(
+        { "devices.imei": device_imei }, 
+        {
+            $push: {
+                "devices.$.location": new_location_data
+            } 
+        },
+    ).exec()
+
+}
+
+// Put location to device's alerts
+const locationToAlert = (device_imei, alert_id, latitude, longitude) => {
+
+    User.updateOne(
+        {"devices.imei": device_imei}, 
+        {
+            $set: {
+                "devices.$[].alert.$[a].location": { latitude, longitude }
+            }
+        }, 
+        {
+            arrayFilters: [{'a._id': ObjectId(alert_id)}]
+        }
+    )
+        .exec()
+        
+}
+
+// Thingy location endpoint
+router.get('/:imei/send/location/:latitude/:longitude', (req, res) => {
+
+    const device_imei = req.params.imei
+    const latitude = req.params.latitude
+    const longitude = req.params.longitude
+
+    if (
+        device_imei === undefined ||
+        latitude === undefined ||
+        longitude === undefined
+    )
+    {
+        getSettings(device_imei)
+            .then((settings) => res.json(settings))
+        return
+    }
+
+    // All params ok
+    deviceExists(device_imei)
+        .then((device_exists) => {
+            if (device_exists) {
+                User.findOne(
+                    { "devices.imei": device_imei},
+                    { "devices.$[]": 1 }
+                )
+                    .then(data  => {
+                        alerts = data.devices[0].alert
+                        most_recent_a = alerts[alerts.length - 1]
+
+                        if (most_recent_a === undefined) {
+                            locationToLocations(device_imei, latitude, longitude)
+
+                        } else {
+                            alert_id = most_recent_a._id
+                            alert_timestamp = most_recent_a.alert_timestamp
+                            
+                            // Checking if location belongs to locations array or most recent alert
+                            
+                            if (most_recent_a.location.latitude !== undefined) {
+                                // Alert has location
+                                locationToLocations(device_imei, latitude, longitude)
+                            } else {
+                                // Alert doesn't have location
+                                getLoa(device_imei)
+                                    .then(loaActive => {
+                                        if (loaActive) {
+                                            console.log("LocationOnAlert is true - PUT location to alert!")
+                                            locationToAlert(device_imei, alert_id, latitude, longitude)
+                                        } else {
+                                            console.log("LOA is false - it doesn't want location")
+                                            locationToLocations(device_imei, latitude, longitude)
+                                        }
+                                    })
+                            }
+                        }
+                    })
+            }
+
+        // Return device's settings to the device in any case
+        getSettings(device_imei)
+            .then((settings) => res.json(settings))
+        })
+		
+})
+
 
 // Thingy alert endpoint
 router.get('/:imei/trigger/alert/:reason', (req, res) => {

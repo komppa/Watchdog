@@ -8,6 +8,7 @@ import "leaflet/dist/leaflet.css";
 const Wdmap = (props) => {
 
     const position = props.position
+    var noData = false
 
     const map_container_s = {
         height: "30vh",
@@ -28,27 +29,44 @@ const Wdmap = (props) => {
 
     }, [])
 
+    console.log(props)
+
+    if (props.position[0] === undefined && props.position[1] === undefined) {
+        console.log("no data")
+        noData = true
+    } else {
+        console.log("yesdata")
+    }
+
 
     return (
         <Modal 
             {...props}
             onclick_cross={() => props.onclick_cross()}
+            onclick_apply={() => props.onclick_cross()}
             title="Device location" 
         >
-
-            <LeafletMap center={position} zoom="15" style={map_container_s}>
-				<TileLayer
-					attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-					url='https://{s}.tile.osm.org/{z}/{x}/{y}.png'
-				/>
-                <Marker position={position} draggable={false}>
-                    <Popup>
-                        <h2><b>{props.deviceName}</b></h2>
-                        <p>Latitude: {props.position[0]} </p>
-                        <p>Longitude: {props.position[1]} </p>
-                    </Popup>
-                </Marker>
-			</LeafletMap>
+            
+            {
+                !noData
+                ?
+                    <LeafletMap center={position} zoom="10" style={map_container_s}>
+                        <TileLayer
+                            attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                            url='https://{s}.tile.osm.org/{z}/{x}/{y}.png'
+                        />
+                        <Marker position={position} draggable={false}>
+                            <Popup>
+                                <h2><b>{props.deviceName}</b></h2>
+                                <p>Latitude: {props.position[0]} </p>
+                                <p>Longitude: {props.position[1]} </p>
+                            </Popup>
+                        </Marker>
+                    </LeafletMap>
+                : 
+                    <h3>You don't have any locations that we could show.</h3>
+            }
+            
 
             </Modal>
     )
