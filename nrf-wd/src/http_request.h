@@ -9,6 +9,8 @@
 #include <modem/at_notif.h>
 #include <modem/modem_key_mgmt.h>
 #include <zephyr.h>
+#include "settings.h"
+
 
 int get_recv_buf_size(void);
 

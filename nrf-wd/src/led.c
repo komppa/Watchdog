@@ -20,7 +20,7 @@
 #define FLAGS	0
 #endif
 
-struct device *led_dev;
+static struct device *led_dev;
 
 void init_led(void) {
 
@@ -124,7 +124,7 @@ void blink_led(int color, int steady_time) {
 
     // Falling light
     for (int x = (cycle_time / 10); x > 0; x--) {
-        if (x == 0 ) {printk("FALLINGISA ON NOLA");}
+        
         toggle_led(color, 1);
         if (x != 0 ) {
             k_msleep(x / 5);

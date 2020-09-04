@@ -12,6 +12,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "http_request.h"
+#include "payloads.h"
+#include "led.h"
 
 
 #define HTTPS_PORT 443
@@ -21,9 +23,9 @@
 #define RECV_BUF_SIZE 2048
 #define TLS_SEC_TAG 42
 
-int fd;
-struct addrinfo *res;
-struct addrinfo hints = {
+static int fd;
+static struct addrinfo *res;
+static struct addrinfo hints = {
     .ai_family = AF_INET,
     .ai_socktype = SOCK_STREAM,
 };
@@ -153,7 +155,6 @@ void get_server_ip(void) {
 
 int init_http_request() {
 	
-	printk("@init_http_request\n");
 
     int err;
 
@@ -176,27 +177,10 @@ int init_http_request() {
 	/* Provision certificates before connecting to the LTE network */
 	err = cert_provision();
 	if (err) {
-		printk("CERT PROVISION FAILED");
+		printk("Cert provision failed");
 		return -1;
 	}
 
-
-	/*
-	printk("Waiting for network..\n");
-
-	
-	err = lte_lc_init_and_connect();
-	if (err) {
-        if (err == -120) {
-            printk("Device has established connection already to network. \n");
-        } else {
-            printk("Failed to connect to the LTE network, err %d\n", err);
-            return -1;
-        }
-		
-	}
-	*/
-	printk("Connected to the network!\n");
     get_server_ip();
     return 0;
 }
@@ -207,6 +191,9 @@ void close_socket(void) {
 
 // Send requst to the server
 void send_request(char *req_response_buf, int req_type) {
+
+    // Reserve request library
+    set_http_request_executing(true);
 
     int err;
     int bytes;
@@ -220,25 +207,25 @@ void send_request(char *req_response_buf, int req_type) {
         case 0:
         {
             // SENSOR DATA
-            sensor_payload(get_url, req_size);   
+            sensor_payload(get_url, &req_size);   
             break;
         }
         case 1:
         {
             //REGISTRATION_DATA
-            registration_payload(get_url, req_size);
+            registration_payload(get_url, &req_size);
             break;
         }
         case 2:
         {
             //ALERT_DATA
-            alert_payload(get_url, req_size);            
+            alert_payload(get_url, &req_size);            
             break;
         }
         case 3:
         {
             //CHANGE SYSTEM_STATUS
-            status_payload(get_url, req_size);
+            status_payload(get_url, &req_size);
             break;
 
         }
@@ -246,8 +233,7 @@ void send_request(char *req_response_buf, int req_type) {
         {
             //LOCATION DATA
             printf("@http_request: send_request (): LOCATION_DATA %f %f \n", get_latitude(), get_longitude());
-            location_payload(get_url, req_size);
-            printk("BACK \n");
+            location_payload(get_url, &req_size);
             break;
 
         }
@@ -261,14 +247,6 @@ void send_request(char *req_response_buf, int req_type) {
     /* Create HTTP request and add previously created endpoint to it */
     create_payload(final_send_buf, get_url, req_size);
 	
-	
-	printk("*** FINAL PAYLOAD IS ***\n");
-	printk("\n");
-	printk("'''%s'''\n", final_send_buf);
-	printk("************************\n");
-	printk("'''%s'''\n", get_url);
-	printk("************************\n");
-
     // Open socket
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TLS_1_2);
 	if (fd == -1) {
@@ -276,17 +254,25 @@ void send_request(char *req_response_buf, int req_type) {
         close_socket();
 	}
 
+    
 	// Setup TLS socket options
 	err = tls_setup(fd);
 	if (err) {
         close_socket();
 	}
+    
+    
 
 	printk("Connecting to %s\n", get_server_address());
 	
 	err = connect(fd, res->ai_addr, sizeof(struct sockaddr_in));
 	if (err) {
 		printk("connect() failed, err: %d\n", errno);
+        if (errno == 95) {
+            printk("Connection was already established!\n");
+            k_msleep(1000);
+            return;
+        }
         close_socket();
 	}
 
@@ -298,9 +284,12 @@ void send_request(char *req_response_buf, int req_type) {
 		if (bytes < 0) {
 			printk("send() failed, err %d\n", errno);
             close_socket();
+
 		}
 		off += bytes;
 	} while (off < HTTP_HEAD_LEN);
+
+
 
     printk("receive\n");
 
@@ -310,6 +299,12 @@ void send_request(char *req_response_buf, int req_type) {
 
 		if (bytes < 0) {
 			printk("recv() failed, err %d\n", errno);
+            if (errno == 9) {
+                k_msleep(2000);
+                close_socket();
+                printk("Socket closed\n");
+                return;
+            }
             close_socket();
 		}
 		off += bytes;
@@ -325,5 +320,7 @@ void send_request(char *req_response_buf, int req_type) {
 	printk("Finished, closing socket.\n");
     close_socket();
 
+    // Release request library
+    set_http_request_executing(false);
 }
 

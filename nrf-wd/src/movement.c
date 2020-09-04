@@ -4,19 +4,23 @@
 #include <device.h>
 #include <drivers/sensor.h>
 #include "movement.h"
+#include "led.h"
+#include "settings.h"
 
 #define abs (x) ((x) < 0 ? -(x) : (x))
 #define UPPER_THRESH 150
 #define LOWER_THRESH 1000
 
-#define CALIB_TIMES 50
+#define CALIB_TIMES 200
 #define DEFAULT_MIN_VALUE -100
 #define DEFAULT_MAX_VALUE 100
 
-struct sensor_value accel[3];
-struct device *accel_dev;
-struct calib_data c_data[CALIB_TIMES];
-struct calib_data accel_data; // For keskiarvo
+static struct sensor_value accel[3];
+static struct device *accel_dev;
+static struct calib_data c_data[CALIB_TIMES];
+static struct calib_data accel_data; // For keskiarvo
+
+static double avg_x, avg_y, avg_z = 0;
 
 bool trigger_valid(void)
 {
@@ -128,7 +132,6 @@ void calibrate_movement(void)
 
 
     // Calculate average 
-    double avg_x, avg_y, avg_z = 0; 
 
     for (int i = 0; i < CALIB_TIMES; i++) 
     {
