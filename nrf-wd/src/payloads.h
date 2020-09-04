@@ -1,6 +1,7 @@
 #include <string.h>
 #include <zephyr.h>
 #include <stdlib.h>
+#include "settings.h"
 
 enum {
     SENSOR_DATA,
@@ -15,3 +16,4 @@ void sensor_payload(char*, int*);
 void registration_payload(char*, int*);
 void alert_payload(char*, int*);
 void status_payload(char*, int*);
+void location_payload(char*, int*);

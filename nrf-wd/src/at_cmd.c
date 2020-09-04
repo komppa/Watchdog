@@ -11,11 +11,11 @@
 #define SPACE 0
 #define QUOTE 1
 
-// For logging
-// LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
+// LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);    // For logging
 
 static char device_imei[50];
-static char device_battery_charge[15];
+static char device_battery_charge[15]; // orig 15
+
 
 char* get_imei(void) {
     return device_imei;
@@ -74,7 +74,7 @@ void get_device_imei(void)
 {
     int buffer_size = 50;
     char rec_buf[50];
-    const char e_command[] = "AT+CGSN=1"; // IMEI
+    char e_command[10] = "AT+CGSN=1"; // IMEI
 	enum at_cmd_state state;
 
 	int ret = at_cmd_write(e_command, rec_buf, buffer_size, &state);
@@ -88,9 +88,10 @@ void get_device_imei(void)
 char* get_device_battery_charge(void)
 {
     int buffer_size = 15;
-	const char e_command[9] = "AT%XVBAT"; // BATT
+	char e_command[9] = "AT%XVBAT"; // BATT
 	enum at_cmd_state state;
 	int ret = at_cmd_write(e_command, device_battery_charge, buffer_size, &state);
+    
     at_error_handler(ret, e_command);
     at_substring(device_battery_charge, 15, SPACE);
     return device_battery_charge;
@@ -99,7 +100,6 @@ char* get_device_battery_charge(void)
 // Get battery charge as integer
 int get_battery_charge(void) 
 {
-
     char *battery_charge;
     int battery_charge_int;
     
@@ -121,70 +121,4 @@ int get_battery_level(void)
     }
     // There weren't value less that charge, its max value then
     return (sizeof(limit_values) / sizeof(limit_values[0]));
-}
-
-
-// For enabling GPS
-char* system_mode_gps(void)
-{
-    int buffer_size = 15;
-	const char e_command[23] = "AT%XSYSTEMMODE=0,0,1,0"; // BATT
-	enum at_cmd_state state;
-	int ret = at_cmd_write(e_command, device_battery_charge, buffer_size, &state);
-	printk("Err code: %d\n", ret);
-    //at_error_handler(ret, e_command);
-    //at_substring(device_battery_charge, 15, SPACE);
-    return device_battery_charge;
-}
-
-char* system_mode_lte(void)
-{
-	
-	printk("@system_mode_lte \n");
-	
-    int buffer_size = 15;
-	const char e_command[23] = "AT%XSYSTEMMODE=1,0,1,0"; // BATT
-	enum at_cmd_state state;
-	int ret = at_cmd_write(e_command, device_battery_charge, buffer_size, &state);
-	printk("Err code: %d\n", ret);
-    //at_error_handler(ret, e_command);
-    //at_substring(device_battery_charge, 15, SPACE);
-    return device_battery_charge;
-}
-
-// For putting GPS action
-char* cfun_zero(void)
-{
-    int buffer_size = 15;
-	const char e_command[10] = "AT+CFUN=0"; // BATT
-	enum at_cmd_state state;
-	int ret = at_cmd_write(e_command, device_battery_charge, buffer_size, &state);
-	printk("Err code: %d\n", ret);
-    //at_error_handler(ret, e_command);
-    //at_substring(device_battery_charge, 15, SPACE);
-    return device_battery_charge;
-}
-
-char* cfun_one(void)
-{
-    int buffer_size = 15;
-	const char e_command[10] = "AT+CFUN=1"; // BATT
-	enum at_cmd_state state;
-	int ret = at_cmd_write(e_command, device_battery_charge, buffer_size, &state);
-	printk("Err code: %d\n", ret);
-    //at_error_handler(ret, e_command);
-    //at_substring(device_battery_charge, 15, SPACE);
-    return device_battery_charge;
-}
-
-char* cfun_31(void)
-{
-    int buffer_size = 15;
-	const char e_command[10] = "AT+CFUN=31"; // BATT
-	enum at_cmd_state state;
-	int ret = at_cmd_write(e_command, device_battery_charge, buffer_size, &state);
-	printk("Err code: %d from CFUN31\n", ret);
-    //at_error_handler(ret, e_command);
-    //at_substring(device_battery_charge, 15, SPACE);
-    return device_battery_charge;
 }

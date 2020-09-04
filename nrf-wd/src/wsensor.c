@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include "wsensor.h"
 
-struct device *dev;
-struct sensor_value temp, press, humidity, gas_res;
+static struct device *dev;
+static struct sensor_value temp, humidity;
 
 void init_bme680(void) {
     dev = device_get_binding(DT_LABEL(DT_INST(0, bosch_bme680)));

@@ -3,18 +3,26 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "settings.h"
+#include "led.h"
+#include "movement.h"
 
-static int connection_interval = 20;
+static int connection_interval = 15;
 static bool system_armed = false;
 static s64_t last_alert = 0;
 static int alert_interval = 0;
 static bool alert_is_pending = false;
-static char server_address[] = "watchdog.rantakangas.com:443";
+static char server_address[29] = "watchdog.rantakangas.com:443";
 s64_t sensor_data_last_sent = 0;
 static bool gps_searching = false;
+static bool send_location_now = false;
 
 static double latitude;
 static double longitude;
+
+static bool location_on_alert = false;
+
+static bool http_request_executing = false;
+static bool search_gps_location = false;
 
 
 
@@ -122,6 +130,38 @@ double get_longitude(void) {
     return longitude;
 }
 
+void set_location_on_alert(bool new_status) {
+    location_on_alert = new_status;
+}
+
+bool get_location_on_alert(void) {
+    return location_on_alert;
+}
+
+void set_send_gps_location(bool new_value) {
+    send_location_now = new_value;
+}
+
+bool get_send_gps_location(void) {
+    return send_location_now;
+}
+
+void set_http_request_executing(bool new_value) {
+    http_request_executing = new_value;
+}
+
+bool get_http_request_executing(void) {
+    return http_request_executing;
+}
+
+void set_search_gps_location(bool new_value) {
+    search_gps_location = new_value;
+}
+
+bool get_search_gps_location(void) {
+    return search_gps_location;
+}
+
 bool parse_response(char *pload) {
     
     cJSON *json = cJSON_Parse(pload);
@@ -129,10 +169,14 @@ bool parse_response(char *pload) {
     const cJSON *res_status = NULL;
     const cJSON *armed_status = NULL;
     const cJSON *ci_value = NULL;
+    const cJSON *loa_status = NULL;
+    const cJSON *sln_status = NULL;
 
     res_status = cJSON_GetObjectItemCaseSensitive(json, "status");
     armed_status = cJSON_GetObjectItemCaseSensitive(json, "armed");
     ci_value = cJSON_GetObjectItemCaseSensitive(json, "ci");
+    loa_status = cJSON_GetObjectItemCaseSensitive(json, "loa");
+    sln_status = cJSON_GetObjectItemCaseSensitive(json, "sln");
 
     // Check if server returned Succcess as status
     if (res_status != NULL || sizeof(res_status) != 0) {
@@ -159,6 +203,29 @@ bool parse_response(char *pload) {
             } else {
                 set_connection_interval(get_connection_interval());
             }
+
+            // Checking location on alert status
+            if (loa_status != NULL || sizeof(loa_status) != 0) {
+                // Checking if status of location on alert is true or false
+                if (cJSON_IsTrue(loa_status)) {
+                    set_location_on_alert(true);
+                } else {        
+                    set_location_on_alert(false);
+                }
+            } else {
+                set_system_armed(get_system_armed());
+            }
+
+            // Checking send location now status
+            if (sln_status != NULL || sizeof(sln_status) != 0) {
+                // Checking if status of send location now is true or false
+                if (cJSON_IsTrue(sln_status)) {
+                    set_search_gps_location(true);
+                } else {        
+                    set_search_gps_location(false);
+                }
+            }
+
             return true;
         } else {
             return false;
