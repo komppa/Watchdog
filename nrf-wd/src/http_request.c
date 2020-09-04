@@ -181,6 +181,24 @@ int init_http_request() {
 		return -1;
 	}
 
+
+    
+	printk("Waiting for network..\n");
+
+	err = lte_lc_init_and_connect();
+	if (err) {
+        if (err == -120) {
+            printk("Device has established connection already to network. \n");
+        } else {
+            printk("Failed to connect to the LTE network, err %d\n", err);
+        }
+	} else {
+        printk("Connected to the network!\n");
+    }
+    
+	
+    
+
     get_server_ip();
     return 0;
 }
@@ -271,9 +289,10 @@ void send_request(char *req_response_buf, int req_type) {
         if (errno == 95) {
             printk("Connection was already established!\n");
             k_msleep(1000);
-            return;
+            
+        } else {
+            close_socket();
         }
-        close_socket();
 	}
 
     printk("send\n");

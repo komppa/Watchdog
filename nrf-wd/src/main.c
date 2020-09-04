@@ -260,6 +260,7 @@ void main(void)
 	
     
     // Connect Thingy to the network
+    /*
 	printk("Waiting for network..\n");	
 	err = lte_lc_init_and_connect();
 	if (err) {
@@ -273,10 +274,11 @@ void main(void)
 	}
     
 	printk("Connected to the network! \n");
+    */
 
     init_led();
-    init_movement();
-    init_bme680();
+    //init_movement();
+    //init_bme680();
     init_http_request();
     // Get device's IMEI on startup that it can be accessible using get_imei()
     get_device_imei();  
@@ -464,4 +466,5 @@ void main(void)
         
         k_msleep(500);
     }
+    
 }

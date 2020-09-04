@@ -23,11 +23,13 @@ void set_btn_act_pending(bool new_value)
 
 void setBtnDownTime(void) 
 {
+    printk("- DOWN - \n");
     start_time = k_uptime_get();
 }
 
 void setBtnUpTime() 
 {
+    printk("- UP - \n");
     end_time = k_uptime_get();
 }
 

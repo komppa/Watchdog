@@ -24,6 +24,7 @@ static double avg_x, avg_y, avg_z = 0;
 
 bool trigger_valid(void)
 {
+    /*
     // Returnable status, true if movement was correct
     double x_val, y_val, z_val = 1;
     sensor_sample_fetch(accel_dev);
@@ -62,6 +63,7 @@ bool trigger_valid(void)
     }
 
     return false;
+    */
 }
 
 void calibrate_movement(void)
@@ -69,6 +71,7 @@ void calibrate_movement(void)
     printk("Calibrating...\n");
 
     k_msleep(1000);
+    /*
 
     double x, y, z;
     double curr_x_max, curr_y_max, curr_z_max = 0;
@@ -143,10 +146,13 @@ void calibrate_movement(void)
     accel_data.x = avg_x / CALIB_TIMES;
     accel_data.y = avg_y / CALIB_TIMES;
     accel_data.z = avg_z / CALIB_TIMES;
+    */
 }
 
 void trigger_handler(struct device *accel_dev, struct sensor_trigger *trig)
 {
+    printk("@trigger_handler\n");    
+    /*  
     switch (trig->type) {
 	case SENSOR_TRIG_THRESHOLD:
 		printf("Threshold trigger\n");
@@ -168,10 +174,12 @@ void trigger_handler(struct device *accel_dev, struct sensor_trigger *trig)
 	default:
 		printf("Unknown trigger\n");
 	}
+    */
 }
 
 void init_movement(void)
 {
+    /*
 	accel_dev = device_get_binding(DT_LABEL(DT_INST(0, adi_adxl362)));
 	if (accel_dev == NULL) {
 		printf("Adxl362 binding failed\n");
@@ -204,4 +212,5 @@ void init_movement(void)
     accel_data.x_min = DEFAULT_MIN_VALUE;
     accel_data.y_min = DEFAULT_MIN_VALUE;
     accel_data.z_min = DEFAULT_MIN_VALUE;
+    */
 }
