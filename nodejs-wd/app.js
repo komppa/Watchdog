@@ -8,13 +8,13 @@ var app = express();
 
 
 // For development purposes
-/*
+
 var cors = require('cors')
 app.use(cors({
   credentials: true,
   origin: "http://localhost:3001"
 }));
-*/
+
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');

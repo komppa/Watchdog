@@ -99,7 +99,7 @@ const Watchdog = (props) => {
 	const [notif, setNotif] = useState(null)
 
 	//const [mostRecentLocation, setMostRecentLocation] = useState([])
-	const [mapData, setMapData] = useState([0, 0, 0])
+	const [mapData, setMapData] = useState([0, 0, 0, 0])
 	const [newLocationArrived, setNewLocationArrived] = useState(false)
     
     {/* Fetch data from the server if user has logged in */}
@@ -331,11 +331,15 @@ const Watchdog = (props) => {
 			if (device_location === undefined) {
 				device_location = [0, 0]
 			} else {
+				console.log("---> ", device_location)
 				// Save the most recent location's timestamp that system can know if new location has been arrived
 				if (device_location.location_timestamp > newest_location_timestamp) {
 					newest_location_timestamp = device_location.location_timestamp
 
 					newest_location_timestamp = device_location.location_timestamp
+
+					mostRecentLocation[1] = device_location.latitude
+					mostRecentLocation[2] = device_location.longitude
 					mostRecentLocation[3] = device.friendly_name === undefined ? device.imei : device.friendly_name
 				}
 			}
@@ -353,7 +357,8 @@ const Watchdog = (props) => {
 				last_seen: device_last_seen,
 				last_location: [
 					device_location.latitude !== undefined ? device_location.latitude : 0 ,
-					 device_location.longitude !== undefined ? device_location.longitude : 0]
+					device_location.longitude !== undefined ? device_location.longitude : 0,
+					device_location.location_timestamp !== undefined ? device_location.location_timestamp : "unknown" ]
 			}
 
 			all_devices.push(new_device)
@@ -364,7 +369,8 @@ const Watchdog = (props) => {
 
 		if (mostRecentLocation[0] !== newest_location_timestamp) {
 			if (deviceSelected) {
-				if ((mostRecentLocation[1] === 0 || mostRecentLocation[2] === undefined) && (mostRecentLocation[1] === 0 || mostRecentLocation[2] === undefined)) {
+				console.log(mostRecentLocation[1])
+				if (mostRecentLocation[1] == 0 && mostRecentLocation[1] == 0) {
 					showAnnonce("GPS Failure", "The device could not get a GPS fix")
 					mostRecentLocation[1] = 0
 					mostRecentLocation[2] = 0
@@ -405,6 +411,7 @@ const Watchdog = (props) => {
 					if (alert.location.latitude === 0 && alert.location.longitude === 0) {
 						alert.location_status = gps_not_fixed
 					} else {
+						console.log("--------------", alert)
 						alert.location_status = gps_found
 						alert.latitude = alert.location.latitude
 						alert.longitude = alert.location.longitude
@@ -429,21 +436,32 @@ const Watchdog = (props) => {
 	}
 
 
-	const getLocForSelDev = (isLongitude) => {
-
-		let loc
-		
+	const getTimeForSelDev = () => {
+		let time
 		devs.map((device) => {
+			console.log("@getTimeForSelDev: ", device)
+			if (device.imei === selectedDevice) {
+				time = device.last_location[2]		
+			}
+		})
 
+		let t = new Date((time * 1000))
+		let clock = getClock(t)
+		let date = getDay(t)
+		return date + " " + clock
+	}
+
+	const getLocForSelDev = (isLongitude) => {
+		let loc
+		devs.map((device) => {
+			console.log("@getLocForSelDev: ", device)
 			if (device.imei === selectedDevice) {
 				if (!isLongitude) {
 					loc = device.last_location[0]		
 				} else {
 					loc = device.last_location[1]		
 				}
-				
 			}
-			
 		})
 		return loc
 	}
@@ -514,8 +532,9 @@ const Watchdog = (props) => {
 			{/* Location map box */}
 			{showMap ? 
 				<Wdmap
-					position={[mapData[1], mapData[2]]}
 					deviceName={[mapData[0]]}
+					position={[mapData[1], mapData[2]]}
+					location_timestamp={mapData[3]}
 					onclick_cross={() => setShowMap(false) }
 				/>
 			: null}
@@ -561,7 +580,7 @@ const Watchdog = (props) => {
 					onclick_find_device={() => sendLocationRequest(selectedDevice)}
 					new_location={newLocationArrived}
 					onclick_map={() => {
-						setMapData([getFriendlynameByImei(selectedDevice), getLocForSelDev(false), getLocForSelDev(true)])
+						setMapData([getFriendlynameByImei(selectedDevice), getLocForSelDev(false), getLocForSelDev(true), getTimeForSelDev()])
 						setShowMap(true)
 						setNewLocationArrived(false)
 					}}
@@ -604,7 +623,7 @@ const Watchdog = (props) => {
 								location_img_src={data.location_status}
 								allowMapFunc={data.location_status === gps_found ? true : false}
 								onclick_locationBtn={() => {
-									setMapData([data.name, data.latitude, data.longitude])
+									setMapData([data.name, data.latitude, data.longitude, data.alert_timestamp])
 									setShowMap(true)
 								}}
 								fourth_row={data.location_status === gps_found ? "" : ""}

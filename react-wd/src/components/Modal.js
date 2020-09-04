@@ -103,6 +103,7 @@ const Modal = (props) => {
                     onclick_rightImg={() => closeModal()}
                 />
 
+
                 <div style={modal_content_box}>
                     {props.children}
                 </div>
