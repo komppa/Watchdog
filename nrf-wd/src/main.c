@@ -359,7 +359,7 @@ void main(void)
     
     init_movement();
     
-    init_bme680();
+    // init_bme680();
     
     //init_http_request(); // FOR DEV PURPOSES ONLY
     

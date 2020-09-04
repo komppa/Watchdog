@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include "wsensor.h"
 
-struct device *dev;
-struct sensor_value temp, press, humidity, gas_res;
-
+// struct device *dev;
+// struct sensor_value temp, press, humidity, gas_res;
+/*
 void init_bme680(void) {
     dev = device_get_binding(DT_LABEL(DT_INST(0, bosch_bme680)));
     printf("Device %p name is %s and it has been initialized \n", dev, dev->name);
@@ -33,6 +33,7 @@ int get_temperature(void) {
     return temperature;
 }
 
+
 int get_humidity(void) {
 
     if (!dev) {
@@ -44,3 +45,8 @@ int get_humidity(void) {
 
     return humidity.val1;
 }
+*/
+
+int get_temperature(void) { return 100; }
+int get_humidity(void) { return 100; }
+
