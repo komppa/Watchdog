@@ -25,6 +25,11 @@ const getTime = () => {
     return Math.floor(time.getTime() / 1000)
 }
 
+const getMsTime = () => {
+    let time = new Date()
+    return Math.floor(time.getTime())
+}
+
 /*
     Send e-mails to address 'recvEmail' and 
     tell that its from device 'triggeredDevice' 
@@ -157,21 +162,28 @@ const getSettings = async (device_imei) => {
     var device_ci
     var device_loa
     var device_sln
-
     let settings
 
-    await User.find(
-        {"devices.imei": device_imei},
+    // User.findOne({token: user_token}, {'devices.environment': { $slice: -5 }})
+    await User.findOne(
+        { "devices.imei": device_imei },
         {
-            "devices.$[]": 1,
-            "loa": 1 
+            "devices.imei": 1,
+            "devices.armed": 1,
+            "connection_interval": 1,
+            "loa": 1,
+            "devices.sln": 1,
         }
     )
-        .then(result => {
+        .then(r => {
 
-            
+            let dev = r.devices.filter((device) => device.imei === device_imei)
 
-            device_armed = result[0].devices[0].armed
+            device_armed = dev[0].armed
+            device_ci = r.connection_interval
+            device_loa = r.loa
+            device_sln = dev[0].sln
+
             // Checks if device is so new that it doesn't have arming status or CI
             if (device_armed !== true && device_armed !== false) {
                 // Our lovely database has no clue whether the device is in armed or disarmed state
@@ -179,17 +191,14 @@ const getSettings = async (device_imei) => {
             }
 
             // Checking if device belong to some user and that way connection interval is known
-            device_ci = result[0].connection_interval
             if (device_ci === undefined) {
                 device_ci = 15 // default value if unknown
             }
 
-            device_loa = result[0].loa
             if (device_loa !== true && device_loa !== false) {
                 device_loa = false
             }
 
-            device_sln = result[0].devices[0].sln
             if (device_sln !== true && device_sln !== false) {
                 device_sln = false
             }
@@ -225,6 +234,8 @@ const getSettings = async (device_imei) => {
 
         return settings
 }
+
+
 
 /* Update device's last seen timestamp by IMEI */
 const updateLastSeen = (device_imei) => {
@@ -289,6 +300,12 @@ router.get('/:imei/send/sensor/:temp/:hum/:air_q/:volt', (req, res) => {
 
     } else {
 
+        // Get current settings from DB and return them
+        getSettings(device_imei)
+            .then(settings => {
+                res.json(settings)
+            })
+
         deviceExists(device_imei)
             .then((device_exists) => {
 
@@ -325,23 +342,14 @@ router.get('/:imei/send/sensor/:temp/:hum/:air_q/:volt', (req, res) => {
                         ],
                     })
     
-                    new_device_entry.save().then(
-                        (savedUser) => {
-                            console.log("New device's data saved to the DB")
-                        }
-                    )  
+                    new_device_entry.save()
+
                 } 
                 
                 // Lastly, update device seen timestamp
                 updateLastSeen(device_imei)
                 updatePendingFlag(device_imei, false)
 
-                // Get current settings from DB and return them
-                getSettings(device_imei)
-                    .then(settings => {
-                        console.log(settings)
-                        res.json(settings)
-                    })
             })
     }
 })
@@ -400,8 +408,14 @@ router.get('/:imei/send/location/:latitude/:longitude', (req, res) => {
     {
         getSettings(device_imei)
             .then((settings) => res.json(settings))
+
         return
     }
+
+    // Return device's settings to the device in any case
+    getSettings(device_imei)
+        .then((settings) => res.json(settings))
+        
 
     // All params ok
     deviceExists(device_imei)
@@ -432,23 +446,18 @@ router.get('/:imei/send/location/:latitude/:longitude', (req, res) => {
                                 getLoa(device_imei)
                                     .then(loaActive => {
                                         if (loaActive) {
-                                            console.log("LocationOnAlert is true - PUT location to alert!")
+                                            // LocationOnAlert is true - PUT location to alert
                                             locationToAlert(device_imei, alert_id, latitude, longitude)
                                         } else {
-                                            console.log("LOA is false - it doesn't want location")
+                                            // LOA is false - it doesn't want location
                                             locationToLocations(device_imei, latitude, longitude)
                                         }
                                     })
                             }
                         }
                     })
-            }
-
-        // Return device's settings to the device in any case
-        getSettings(device_imei)
-            .then((settings) => res.json(settings))
-        })
-		
+            }		
+    })
 })
 
 
@@ -468,6 +477,13 @@ router.get('/:imei/trigger/alert/:reason', (req, res) => {
         return;
 
     } else {
+
+        // Get current settings from DB and return them
+        getSettings(device_imei)
+            .then(settings => {
+                res.json(settings)
+            })
+        
 
         deviceExists(device_imei)
             .then((device_exists) => {
@@ -512,12 +528,6 @@ router.get('/:imei/trigger/alert/:reason', (req, res) => {
                 updateLastSeen(device_imei)
                 updatePendingFlag(device_imei, false)
 
-                // Get current settings from DB and return them
-                getSettings(device_imei)
-                    .then(settings => {
-                        res.json(settings)
-                    })
-
                 // Send email notification if user has decided notification address
                 getNotificationEmail(device_imei)
                     .then(address => {
@@ -552,6 +562,12 @@ router.get('/:imei/request/registration', (req, res) => {
 
     } else {
 
+        // Get current settings from DB and return them
+        getSettings(device_imei)
+            .then(settings => {
+                res.json(settings)
+            })
+
         deviceExists(device_imei)
             .then((device_exists) => {
 
@@ -579,22 +595,12 @@ router.get('/:imei/request/registration', (req, res) => {
                         ],
                     })
     
-                    new_device_entry.save().then(
-                        (savedUser) => {
-                            getSettings(device_imei)
-                                .then((settings) => res.json(settings))
-                        }
-                    )  
+                    new_device_entry.save()
+                     
                 }  
 
                 updateLastSeen(device_imei)
                 updatePendingFlag(device_imei, false)
-
-                // Get current settings from DB and return them
-                getSettings(device_imei)
-                    .then(settings => {
-                        res.json(settings)
-                    })
 
             })
     }
@@ -617,6 +623,9 @@ router.get('/:imei/systemStatus/:status', (req, res) => {
 
     } else {
 
+        getSettings(device_imei)
+            .then((settings) => res.json(settings))
+
         deviceExists(device_imei)
             .then((device_exists) => {
 
@@ -631,10 +640,6 @@ router.get('/:imei/systemStatus/:status', (req, res) => {
                         },
                     )
                         .exec()
-                        .then(() => {
-                            getSettings(device_imei)
-                                .then((settings) => res.json(settings))
-                        })
 
                 } else {
                     // There is no device with this IMEI
