@@ -51,8 +51,6 @@ const Wdmap = (props) => {
             isTos={noData ? true : false}
         >
             
-
-            
             {
                 !noData
                 ?

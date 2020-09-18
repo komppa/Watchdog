@@ -1,7 +1,6 @@
 import React from 'react'
 
 // Server env variables
-var server_addr = "https://watchdog.rantakangas.com"
 var api_path_addr = "/api/portal/"
 
 const srv_addr = () => { return server_addr }

@@ -15,7 +15,6 @@ const Modal = (props) => {
         return () => document.removeEventListener('mousedown', handleOutsideClicks)    
     }, [])
     
-
     const modal_dimmerground = {
         position: "absolute",
         height: "100vh", 

@@ -390,6 +390,7 @@ const Watchdog = (props) => {
 		}
 	}
 
+
 	const getAlerts = (devices) => {
 		
 		let new_alerts = []
