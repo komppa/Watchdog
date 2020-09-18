@@ -564,7 +564,6 @@ router.get('/arm/:imei', (req, res) => {
         status: "Success",
         reason: "System armed successfully"
     })
-	
 })
 
 /* Disarming the system */
@@ -590,7 +589,6 @@ router.get('/disarm/:imei', (req, res) => {
     })
 })
 
-
 /* List all devices that user owns */
 router.get('/listDevices', (req, res) => {
 
@@ -606,23 +604,9 @@ router.get('/listDevices', (req, res) => {
         return
     }
 
-    var whatToReturn = [
-        'notification_email',
-        'connection_interval',
-        'devices.imei',
-        'devices.friendly_name',
-        'devices.armed',
-        'devices.pending',
-        'devices.last_seen_timestamp',
-        'devices.alert',
-        'devices.environment',   
-        'devices.connection_interval',   
-        'devices.location',
-        'loa',
-    ]
-
-    User.findOne({token: user_token}, whatToReturn)
+    User.findOne({token: user_token}, {'devices.environment': { $slice: -5 }})
         .then(response => {
+
             // Try to read devices from response
             try {
                 if (response == null) {
@@ -760,8 +744,8 @@ router.post('/register', (req, res) => {
 
     // Check if all fields are filled (except notif. email because that isn't mandratory)
     if (username.length == 0)   {
-        res.json({
-            status: "Failure", 
+        res.json({  
+            status: "Failure",
             reason: "Username or password missing"
         })
         return
@@ -787,7 +771,6 @@ router.post('/register', (req, res) => {
                 last_login_timestamp: 0,
                 last_login_addr: "none",
             })
-            
             
             new_user.save().then(savedUser => {
                 if (savedUser.username !== username) {
@@ -828,7 +811,9 @@ router.post('/login', (req, res) => {
             password: password
         }
     )
+        .select(['+username', '+password'])
         .then((result) => {
+            
             if (result[0] === undefined) {
                 res.json({
                     status: "Failure",
