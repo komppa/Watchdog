@@ -50,7 +50,8 @@ var deviceSelected = false	//@startup
 
 var devices;
 var currentDevice;
-var mostRecentLocation = [0,1,1,"dev"]
+//var mostRecentLocation = [0,1,1,"dev"]
+var newest_location_timestamp = 0
 
 
 var announcementContent = {
@@ -303,11 +304,54 @@ const Watchdog = (props) => {
 		}, 4000)
 	}
 
+	const checkLocationAnnounce = (devices) => {
+
+		console.log("@checkLocationAnnounce ", devices)
+		
+		var locationAnnonce = {
+			show: false,
+			fix: false,
+		}
+
+		let device_ts = 0
+		let newest_device
+
+		// Get the most recent location timstamp regardless of device
+		devices.map(d => {
+			if (d.last_location[0] > device_ts) {
+				device_ts = d.last_location[0]
+				newest_device = d
+			}
+		})
+
+		console.log("Laite joka omsitaa uusimman lokaation on ", newest_device)
+
+		if (device_ts > newest_location_timestamp) {
+
+			newest_location_timestamp = device_ts
+
+			console.log("uusi data tuli. ")
+			console.log("DeviceSelected ! : ", deviceSelected)
+			console.log(newest_device)
+
+			// showAnnonce("GPS Failure", "Your device " + newest_device.name + " could not get a GPS fix")
+
+			if (deviceSelected) {
+				showAnnonce("Location arrived!", "Your device " + newest_device.name + " updated its location! Press map icon to show map.")
+				lastAnnouncement = ""
+			}
+
+		} else {
+			console.log("uusi data ei tullut ! ")
+			console.log("DeviceSelected ! : ", deviceSelected)
+		}
+		
+	}
+
 	const getDevices = (devices) => {
 		
-		let all_devices = []
-		var newest_location_timestamp = 0
-
+		var all_devices = []
+		
 		devices.map(device => {
 
 			let device_last_seen = device.last_seen_timestamp
@@ -325,26 +369,80 @@ const Watchdog = (props) => {
 			})
 			
 
-			// Get most recent location from location
-			device_location = device.location[device.location.length - 1]
+			// Get most recent location from location that is really location
+			let locations = []
 
-			if (device_location === undefined) {
-				device_location = [0, 0]
-			} else {
-				console.log("---> ", device_location)
-				// Save the most recent location's timestamp that system can know if new location has been arrived
-				if (device_location.location_timestamp > newest_location_timestamp) {
-					newest_location_timestamp = device_location.location_timestamp
-
-					newest_location_timestamp = device_location.location_timestamp
-
-					mostRecentLocation[1] = device_location.latitude
-					mostRecentLocation[2] = device_location.longitude
-					mostRecentLocation[3] = device.friendly_name === undefined ? device.imei : device.friendly_name
-				}
+			var locationData = {
+				loc_timestamp: 0,
+				loc_latitude: 0,
+				loc_longitude: 0,
+				loc_name: "..."
 			}
 
+			
+			device.location.map(loc => locations.push(loc))
 
+			locations.sort((a, b) => b.location_timestamp - a.location_timestamp)
+
+			if (locations.length !== 0) {
+				
+				console.log(locations)
+
+				// Check if it hasn't got fix
+				if (locations[0].latitude === 0 && locations[0].longitude === 0) {
+					
+					/*
+					if (!selectedDevice) {
+						showAnnonce("GPS Failure", "Your device " + device.friendly_name + " could not get a GPS fix")
+					}
+					*/
+	
+					// Search backward so much that there will be location that includes real data
+					let realLocationFound = false
+					locations.map(location => {
+	
+						if (!realLocationFound) {
+							if (location.latitude !== 0 || location.longitude !== 0) {
+	
+								// Tämä on most recent real location
+								locationData.loc_timestamp = location.location_timestamp
+								locationData.loc_latitude = location.latitude
+								locationData.loc_longitude = location.longitude
+								locationData.loc_name = device.friendly_name
+	
+								realLocationFound = true
+
+							}
+						}
+						
+					})
+	
+					// If locations array doesn't include location that could be real location
+					if (!realLocationFound) {
+						locationData.loc_timestamp = locations[0].location_timestamp
+						locationData.loc_latitude = 0
+						locationData.loc_longitude = 0
+						locationData.loc_name = "-"
+
+					}
+	
+					
+				} else {
+	
+					// The most recent location is really correct location (got fix)
+					locationData.loc_timestamp = locations[0].location_timestamp
+					locationData.loc_latitude = locations[0].latitude
+					locationData.loc_longitude = locations[0].longitude
+					locationData.loc_name = device.friendly_name
+	
+				}
+			} else {
+				// Device hasn't any location array data
+				locationData.loc_timestamp = 0
+				locationData.loc_latitude = 0
+				locationData.loc_longitude = 0
+				locationData.loc_name = "-"
+			}
 
 			let new_device = {
 				name: device.friendly_name === undefined ? device.imei : device.friendly_name,
@@ -356,38 +454,20 @@ const Watchdog = (props) => {
 				humidity: device_humidity,
 				last_seen: device_last_seen,
 				last_location: [
-					device_location.latitude !== undefined ? device_location.latitude : 0 ,
-					device_location.longitude !== undefined ? device_location.longitude : 0,
-					device_location.location_timestamp !== undefined ? device_location.location_timestamp : "unknown" ]
+					locationData.loc_timestamp,
+					locationData.loc_latitude,
+					locationData.loc_longitude,
+					locationData.loc_name
+				]
 			}
 
 			all_devices.push(new_device)
-			
-		})
 
+		})	// Devices map ends here
+
+		// Check if new location has arrived - show annonce
+		checkLocationAnnounce(all_devices)
 		setDevs(all_devices)
-
-		if (mostRecentLocation[0] !== newest_location_timestamp) {
-			if (deviceSelected) {
-				console.log(mostRecentLocation[1])
-				if (mostRecentLocation[1] == 0 && mostRecentLocation[1] == 0) {
-					showAnnonce("GPS Failure", "The device could not get a GPS fix")
-					mostRecentLocation[1] = 0
-					mostRecentLocation[2] = 0
-				} else {
-					showAnnonce("Location arrived!", "Your device " + mostRecentLocation[3] + " updated its location! Press map icon to show map.")
-					setNewLocationArrived(true)
-					lastAnnouncement = "" // Resets last annonce that same annonce can be shown multiply times in a row
-				}
-				
-			} else {
-			}
-
-			mostRecentLocation[0] = newest_location_timestamp
-			mostRecentLocation[0] = newest_location_timestamp
-			mostRecentLocation[0] = newest_location_timestamp
-
-		}
 	}
 
 	const getAlerts = (devices) => {
@@ -411,7 +491,6 @@ const Watchdog = (props) => {
 					if (alert.location.latitude === 0 && alert.location.longitude === 0) {
 						alert.location_status = gps_not_fixed
 					} else {
-						console.log("--------------", alert)
 						alert.location_status = gps_found
 						alert.latitude = alert.location.latitude
 						alert.longitude = alert.location.longitude
@@ -437,11 +516,12 @@ const Watchdog = (props) => {
 
 
 	const getTimeForSelDev = () => {
+
 		let time
+
 		devs.map((device) => {
-			console.log("@getTimeForSelDev: ", device)
 			if (device.imei === selectedDevice) {
-				time = device.last_location[2]		
+				time = device.last_location[0]		
 			}
 		})
 
@@ -452,14 +532,15 @@ const Watchdog = (props) => {
 	}
 
 	const getLocForSelDev = (isLongitude) => {
+
 		let loc
+
 		devs.map((device) => {
-			console.log("@getLocForSelDev: ", device)
 			if (device.imei === selectedDevice) {
 				if (!isLongitude) {
-					loc = device.last_location[0]		
-				} else {
 					loc = device.last_location[1]		
+				} else {
+					loc = device.last_location[2]		
 				}
 			}
 		})
@@ -481,11 +562,8 @@ const Watchdog = (props) => {
 		// Get global connection interval and set it to variable and useState
 		devices = res.data.devices
 
-
-
 		getAlerts(devices)
 		getDevices(devices)
-		//getMostRecentLocation(devices)
 
 		// If selected device is null / undefined, selecting first device from list
 		if (!deviceSelected) {
@@ -500,8 +578,6 @@ const Watchdog = (props) => {
 		
 		
 	}
-
-
 
     return (
         <>

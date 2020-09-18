@@ -12,7 +12,7 @@ const Wdmap = (props) => {
     const position = props.position
 
     const map_container_s = {
-        height: "30vh",
+        height: "27.5vh",
         width: "40vw",
     }
     
@@ -77,7 +77,7 @@ const Wdmap = (props) => {
                     </>
                 : 
                     <>
-                        <h3>It seems like that your device couldn't get GPS fix.</h3>
+                        <h3>It seems like that your device hasn't got GPS fix.</h3>
                         <h3>Try again later by pressing 'find device'-button.</h3>
                     </>
             }

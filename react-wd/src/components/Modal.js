@@ -35,7 +35,6 @@ const Modal = (props) => {
         left: "27.5vw",
         dispaly: "flex",
     }
-
     
     const modal_content_box = {
         fontSize: "1.1vw",
